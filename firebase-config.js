@@ -21,5 +21,8 @@ const app  = initializeApp(firebaseConfig);
 export const db   = getFirestore(app);
 export const auth = getAuth(app);
 
-// اسم المجموعة (Collection) اللي تنحفظ بيها الطلبات
+// اسم المجموعة (Collection) اللي تنحفظ بيها الطلبات الكاملة (للأدمن فقط)
 export const VOLUNTEERS_COLLECTION = "volunteers";
+
+// مجموعة الحالات: رقم الطلب + الحالة فقط (قراءة عامة لصفحة التتبع)
+export const STATUS_COLLECTION = "status";
