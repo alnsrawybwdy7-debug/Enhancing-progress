@@ -85,8 +85,9 @@
   .req .row .k{color:var(--muted);min-width:70px;font-weight:500}
   .req .row .v{color:var(--ink);font-weight:500}
   .req .reason{background:var(--cream);border-radius:11px;padding:11px 13px;font-size:.9rem;color:var(--ink);margin-top:4px;line-height:1.6}
-  .id-thumb{width:100%;height:150px;object-fit:cover;border-radius:11px;border:1.5px solid var(--line);margin-top:10px;cursor:zoom-in;transition:.2s;display:block}
+  .id-thumb{width:100%;height:150px;object-fit:cover;border-radius:11px;border:1.5px solid var(--line);margin-top:6px;cursor:zoom-in;transition:.2s;display:block}
   .id-thumb:hover{filter:brightness(.95);border-color:var(--leaf)}
+  .id-label{font-size:.8rem;font-weight:600;color:var(--pine);margin-top:12px}
   .no-id{margin-top:10px;padding:14px;text-align:center;font-size:.85rem;color:var(--muted);background:var(--cream);border-radius:11px;border:1px dashed var(--line)}
   .lightbox{position:fixed;inset:0;z-index:80;background:rgba(15,30,24,.88);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
   .lightbox.show{display:flex}
@@ -328,8 +329,14 @@
           <div class="row"><span class="k">التخصص:</span><span class="v">${esc(r.specialty)}</span></div>
           <div class="row"><span class="k">التواصل:</span><span class="v">${esc(r.contact)}</span></div>
           ${r.idCard
-            ? `<img class="id-thumb" src="${r.idCard}" alt="الهوية الجامعية">`
-            : `<div class="no-id">لا توجد صورة هوية</div>`}
+            ? `<div class="id-label">🪪 الهوية الجامعية</div><img class="id-thumb" src="${r.idCard}" alt="الهوية الجامعية">`
+            : `<div class="no-id">لا توجد صورة هوية جامعية</div>`}
+          ${r.nationalFront
+            ? `<div class="id-label">🆔 الهوية الوطنية — الوجه</div><img class="id-thumb" src="${r.nationalFront}" alt="وجه الهوية الوطنية">`
+            : ``}
+          ${r.nationalBack
+            ? `<div class="id-label">🔄 الهوية الوطنية — الخلف</div><img class="id-thumb" src="${r.nationalBack}" alt="خلف الهوية الوطنية">`
+            : ``}
         </div>
         <div class="actions">
           <button class="b-acc" onclick="setStatus('${r.id}','accepted')">✓ قبول</button>
