@@ -95,6 +95,23 @@
   }
   .field .hint{font-size:.8rem;color:var(--muted);margin-top:6px}
 
+  /* رفع صورة الباج */
+  .upload-box{
+    border:2px dashed var(--line);border-radius:14px;background:var(--cream);
+    padding:20px;text-align:center;cursor:pointer;transition:.2s;
+  }
+  .upload-box:hover{border-color:var(--leaf);background:#fff}
+  .upload-box .up-ic{font-size:1.8rem;margin-bottom:6px}
+  .upload-box .up-txt{font-weight:600;color:var(--pine);font-size:.95rem}
+  .upload-box .up-sub{font-size:.8rem;color:var(--muted);margin-top:3px}
+  .upload-box input[type=file]{display:none}
+  .preview{margin-top:12px;display:none;position:relative}
+  .preview img{width:100%;max-height:220px;object-fit:contain;border-radius:12px;border:1.5px solid var(--line);background:#fff}
+  .preview .rm{
+    position:absolute;top:8px;inset-inline-end:8px;width:30px;height:30px;border-radius:50%;
+    background:var(--clay);color:#fff;border:none;cursor:pointer;font-size:1rem;font-weight:700;box-shadow:var(--shadow-sm);
+  }
+
   /* رسالة الرفض */
   .reject-msg{
     display:flex;align-items:center;gap:12px;
@@ -215,6 +232,21 @@
         <div class="hint">يستخدمها الفريق للتواصل معك</div>
       </div>
 
+      <div class="field full">
+        <label>صورة الهوية الجامعية (الباج) <b>*</b></label>
+        <label class="upload-box" id="uploadBox">
+          <div class="up-ic">🪪</div>
+          <div class="up-txt">اضغط لرفع صورة الباج الجامعي</div>
+          <div class="up-sub">للتأكد من أنك طالب — JPG أو PNG</div>
+          <input type="file" id="idCard" accept="image/*">
+        </label>
+        <div class="preview" id="preview">
+          <button type="button" class="rm" id="rmImg" title="حذف">✕</button>
+          <img id="previewImg" alt="معاينة الباج">
+        </div>
+        <div class="hint">الصورة تُستخدم للتحقق فقط وتظهر للإدارة</div>
+      </div>
+
       <button type="submit" class="submit" id="btn">
         <span class="spin"></span>
         <span class="btn-txt">إرسال الطلب</span>
@@ -251,11 +283,63 @@
   const specialty      = document.getElementById("specialty");
   const rejectMsg      = document.getElementById("rejectMsg");
 
+  const idCard      = document.getElementById("idCard");
+  const preview     = document.getElementById("preview");
+  const previewImg  = document.getElementById("previewImg");
+  const uploadBox   = document.getElementById("uploadBox");
+  let   idCardData  = "";   // صورة الباج بصيغة مضغوطة
+
   function showToast(msg, isErr=false){
     document.getElementById("toast-txt").textContent = msg;
     toast.className = "toast show" + (isErr ? " err" : "");
     setTimeout(() => toast.className = "toast", 3500);
   }
+
+  // ضغط الصورة وتصغيرها حتى تدخل ضمن حد Firestore
+  function compressImage(file, maxDim, quality){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if(w >= h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else if(h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // عند اختيار صورة: اضغطها واعرض معاينة
+  idCard.addEventListener("change", async () => {
+    const file = idCard.files[0];
+    if(!file) return;
+    if(!file.type.startsWith("image/")){ showToast("الرجاء اختيار صورة فقط", true); idCard.value=""; return; }
+    try{
+      idCardData = await compressImage(file, 1000, 0.6);
+      // محاولة ضغط أقوى إذا الصورة كبيرة
+      if(idCardData.length > 900000) idCardData = await compressImage(file, 800, 0.45);
+      if(idCardData.length > 1000000){ showToast("الصورة كبيرة جداً، جرّب صورة أصغر", true); idCardData=""; idCard.value=""; return; }
+      previewImg.src = idCardData;
+      preview.style.display = "block";
+      uploadBox.style.display = "none";
+    }catch(err){ console.error(err); showToast("تعذّر قراءة الصورة", true); }
+  });
+
+  // حذف الصورة المختارة
+  document.getElementById("rmImg").addEventListener("click", () => {
+    idCardData = ""; idCard.value = "";
+    preview.style.display = "none";
+    uploadBox.style.display = "block";
+  });
 
   // إظهار/إخفاء حقل التخصص ورسالة الرفض حسب إجابة التخرج
   graduated.addEventListener("change", () => {
@@ -295,6 +379,12 @@
       return;
     }
 
+    // التأكد من رفع صورة الباج
+    if(!idCardData){
+      showToast("الرجاء رفع صورة الهوية الجامعية", true);
+      return;
+    }
+
     btn.classList.add("loading");
     btn.disabled = true;
 
@@ -305,6 +395,7 @@
       graduated:  true,                    // وصل لهنا يعني متخرج
       specialty:  form.specialty.value.trim(),
       contact:    form.contact.value.trim(),
+      idCard:     idCardData,              // صورة الباج الجامعي
       status:     "pending",               // الحالة الافتراضية: قيد المراجعة
       createdAt:  serverTimestamp()        // وقت الإرسال
     };
@@ -327,6 +418,9 @@
     specialtyField.style.display = "none";
     rejectMsg.style.display = "none";
     specialty.required = false;
+    idCardData = "";
+    preview.style.display = "none";
+    uploadBox.style.display = "block";
     done.style.display = "none";
     form.style.display = "grid";
     btn.classList.remove("loading");
