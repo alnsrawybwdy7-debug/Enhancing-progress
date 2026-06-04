@@ -258,17 +258,45 @@
 
       <div class="field full">
         <label>صورة الهوية الجامعية (الباج) <b>*</b></label>
-        <label class="upload-box" id="uploadBox">
+        <label class="upload-box" data-box="idCard">
           <div class="up-ic">🪪</div>
           <div class="up-txt">اضغط لرفع صورة الباج الجامعي</div>
           <div class="up-sub">للتأكد من أنك طالب — JPG أو PNG</div>
-          <input type="file" id="idCard" accept="image/*">
+          <input type="file" accept="image/*" data-input="idCard">
         </label>
-        <div class="preview" id="preview">
-          <button type="button" class="rm" id="rmImg" title="حذف">✕</button>
-          <img id="previewImg" alt="معاينة الباج">
+        <div class="preview" data-preview="idCard">
+          <button type="button" class="rm" data-rm="idCard" title="حذف">✕</button>
+          <img data-img="idCard" alt="معاينة الباج">
         </div>
-        <div class="hint">الصورة تُستخدم للتحقق فقط وتظهر للإدارة</div>
+      </div>
+
+      <div class="field full">
+        <label>الهوية الوطنية — الوجه (الأمام) <b>*</b></label>
+        <label class="upload-box" data-box="nationalFront">
+          <div class="up-ic">🆔</div>
+          <div class="up-txt">اضغط لرفع وجه الهوية الوطنية</div>
+          <div class="up-sub">الجهة الأمامية — واضحة ومقروءة</div>
+          <input type="file" accept="image/*" data-input="nationalFront">
+        </label>
+        <div class="preview" data-preview="nationalFront">
+          <button type="button" class="rm" data-rm="nationalFront" title="حذف">✕</button>
+          <img data-img="nationalFront" alt="معاينة وجه الهوية">
+        </div>
+      </div>
+
+      <div class="field full">
+        <label>الهوية الوطنية — الخلف (القفا) <b>*</b></label>
+        <label class="upload-box" data-box="nationalBack">
+          <div class="up-ic">🔄</div>
+          <div class="up-txt">اضغط لرفع خلف الهوية الوطنية</div>
+          <div class="up-sub">الجهة الخلفية — واضحة ومقروءة</div>
+          <input type="file" accept="image/*" data-input="nationalBack">
+        </label>
+        <div class="preview" data-preview="nationalBack">
+          <button type="button" class="rm" data-rm="nationalBack" title="حذف">✕</button>
+          <img data-img="nationalBack" alt="معاينة خلف الهوية">
+        </div>
+        <div class="hint">🔒 صور الهوية تُستخدم للتحقق فقط وتظهر للإدارة وحدها</div>
       </div>
 
       <button type="submit" class="submit" id="btn">
@@ -316,11 +344,8 @@
   const specialty      = document.getElementById("specialty");
   const rejectMsg      = document.getElementById("rejectMsg");
 
-  const idCard      = document.getElementById("idCard");
-  const preview     = document.getElementById("preview");
-  const previewImg  = document.getElementById("previewImg");
-  const uploadBox   = document.getElementById("uploadBox");
-  let   idCardData  = "";   // صورة الباج بصيغة مضغوطة
+  // الصور الثلاث المطلوبة (تُحفظ مضغوطة)
+  const images = { idCard:"", nationalFront:"", nationalBack:"" };
 
   function showToast(msg, isErr=false){
     document.getElementById("toast-txt").textContent = msg;
@@ -351,28 +376,43 @@
     });
   }
 
-  // عند اختيار صورة: اضغطها واعرض معاينة
-  idCard.addEventListener("change", async () => {
-    const file = idCard.files[0];
-    if(!file) return;
-    if(!file.type.startsWith("image/")){ showToast("الرجاء اختيار صورة فقط", true); idCard.value=""; return; }
-    try{
-      idCardData = await compressImage(file, 1000, 0.6);
-      // محاولة ضغط أقوى إذا الصورة كبيرة
-      if(idCardData.length > 900000) idCardData = await compressImage(file, 800, 0.45);
-      if(idCardData.length > 1000000){ showToast("الصورة كبيرة جداً، جرّب صورة أصغر", true); idCardData=""; idCard.value=""; return; }
-      previewImg.src = idCardData;
-      preview.style.display = "block";
-      uploadBox.style.display = "none";
-    }catch(err){ console.error(err); showToast("تعذّر قراءة الصورة", true); }
+  // ربط كل حقل رفع (3 صور) بنفس المنطق
+  document.querySelectorAll("input[data-input]").forEach(input => {
+    const key     = input.dataset.input;
+    const box     = document.querySelector(`[data-box="${key}"]`);
+    const preview = document.querySelector(`[data-preview="${key}"]`);
+    const imgEl   = document.querySelector(`[data-img="${key}"]`);
+    const rmBtn   = document.querySelector(`[data-rm="${key}"]`);
+
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      if(!file) return;
+      if(!file.type.startsWith("image/")){ showToast("الرجاء اختيار صورة فقط", true); input.value=""; return; }
+      try{
+        // ضغط أقوى لأن عندنا 3 صور بنفس الطلب
+        let data = await compressImage(file, 900, 0.55);
+        if(data.length > 500000) data = await compressImage(file, 750, 0.4);
+        images[key] = data;
+        imgEl.src = data;
+        preview.style.display = "block";
+        box.style.display = "none";
+      }catch(err){ console.error(err); showToast("تعذّر قراءة الصورة", true); }
+    });
+
+    rmBtn.addEventListener("click", () => {
+      images[key] = ""; input.value = "";
+      preview.style.display = "none";
+      box.style.display = "block";
+    });
   });
 
-  // حذف الصورة المختارة
-  document.getElementById("rmImg").addEventListener("click", () => {
-    idCardData = ""; idCard.value = "";
-    preview.style.display = "none";
-    uploadBox.style.display = "block";
-  });
+  // إعادة كل حقول الرفع لوضعها الأصلي
+  function resetUploads(){
+    Object.keys(images).forEach(k => images[k] = "");
+    document.querySelectorAll("input[data-input]").forEach(i => i.value = "");
+    document.querySelectorAll("[data-preview]").forEach(p => p.style.display = "none");
+    document.querySelectorAll("[data-box]").forEach(b => b.style.display = "block");
+  }
 
   // إظهار/إخفاء حقل التخصص ورسالة الرفض حسب إجابة التخرج
   graduated.addEventListener("change", () => {
@@ -412,9 +452,15 @@
       return;
     }
 
-    // التأكد من رفع صورة الباج
-    if(!idCardData){
-      showToast("الرجاء رفع صورة الهوية الجامعية", true);
+    // التأكد من رفع الصور الثلاث
+    if(!images.idCard){ showToast("الرجاء رفع صورة الهوية الجامعية", true); return; }
+    if(!images.nationalFront){ showToast("الرجاء رفع وجه الهوية الوطنية", true); return; }
+    if(!images.nationalBack){ showToast("الرجاء رفع خلف الهوية الوطنية", true); return; }
+
+    // حماية من تجاوز حد الحجم (مجموع الصور الثلاث)
+    const totalSize = images.idCard.length + images.nationalFront.length + images.nationalBack.length;
+    if(totalSize > 950000){
+      showToast("حجم الصور كبير، جرّب صوراً أوضح وأصغر", true);
       return;
     }
 
@@ -435,7 +481,9 @@
       graduated:  true,                    // وصل لهنا يعني متخرج
       specialty:  form.specialty.value.trim(),
       contact:    form.contact.value.trim(),
-      idCard:     idCardData,              // صورة الباج الجامعي
+      idCard:     images.idCard,           // صورة الباج الجامعي
+      nationalFront: images.nationalFront, // وجه الهوية الوطنية
+      nationalBack:  images.nationalBack,  // خلف الهوية الوطنية
       status:     "pending",               // الحالة الافتراضية: قيد المراجعة
       createdAt:  serverTimestamp()        // وقت الإرسال
     };
@@ -475,9 +523,7 @@
     specialtyField.style.display = "none";
     rejectMsg.style.display = "none";
     specialty.required = false;
-    idCardData = "";
-    preview.style.display = "none";
-    uploadBox.style.display = "block";
+    resetUploads();
     done.style.display = "none";
     form.style.display = "grid";
     btn.classList.remove("loading");
