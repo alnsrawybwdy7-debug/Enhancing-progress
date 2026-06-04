@@ -15,7 +15,6 @@
     --pine-2:#1F5142;
     --leaf:#3E8E6E;
     --clay:#D9613A;
-  
     --clay-soft:#E8865F;
     --ink:#22322B;
     --muted:#6E7B72;
@@ -95,6 +94,18 @@
     box-shadow:0 0 0 4px rgba(62,142,110,.14);
   }
   .field .hint{font-size:.8rem;color:var(--muted);margin-top:6px}
+
+  /* رسالة الرفض */
+  .reject-msg{
+    display:flex;align-items:center;gap:12px;
+    background:#FBE9E3;border:1.5px solid var(--clay-soft);
+    color:#9C3415;border-radius:14px;padding:14px 16px;font-weight:500;
+    animation:rise .3s ease both;
+  }
+  .reject-msg .rj-ic{
+    width:26px;height:26px;border-radius:50%;flex:none;
+    background:var(--clay);color:#fff;display:grid;place-items:center;font-weight:700;
+  }
 
   /* زر الإرسال */
   .submit{
@@ -177,29 +188,31 @@
         <input type="number" name="age" placeholder="مثال: 22" min="14" max="90" required>
       </div>
 
-      <div class="field">
-        <label>المحافظة <b>*</b></label>
-        <select name="governorate" required>
-          <option value="" disabled selected>اختر المحافظة</option>
-          <option>بغداد</option><option>البصرة</option><option>نينوى</option>
-          <option>أربيل</option><option>النجف</option><option>كربلاء</option>
-          <option>بابل</option><option>ذي قار</option><option>الأنبار</option>
-          <option>ديالى</option><option>كركوك</option><option>صلاح الدين</option>
-          <option>واسط</option><option>ميسان</option><option>المثنى</option>
-          <option>القادسية</option><option>دهوك</option><option>السليمانية</option>
-          <option>حلبجة</option>
+      <div class="field full">
+        <label>هل أنت متخرج من الإعدادية؟ <b>*</b></label>
+        <select name="graduated" id="graduated" required>
+          <option value="" disabled selected>اختر الإجابة</option>
+          <option value="yes">نعم، متخرج</option>
+          <option value="no">لا</option>
         </select>
       </div>
 
-      <div class="field full">
-        <label>التخصص / المهارات <b>*</b></label>
-        <input type="text" name="skills" placeholder="مثال: تصميم، برمجة، تنظيم فعاليات، إعلام..." required>
-        <div class="hint">اكتب المجالات اللي تقدر تتطوع بيها</div>
+      <!-- يظهر فقط إذا اختار "نعم" -->
+      <div class="field full" id="specialtyField" style="display:none">
+        <label>ما هو تخصصك؟ <b>*</b></label>
+        <input type="text" name="specialty" id="specialty" placeholder="اكتب تخصصك">
+      </div>
+
+      <!-- رسالة الرفض، تظهر فقط إذا اختار "لا" -->
+      <div class="reject-msg full" id="rejectMsg" style="display:none">
+        <span class="rj-ic">!</span>
+        <div>عذراً، لا يمكن القبول. الانضمام متاح فقط لخريجي الإعدادية.</div>
       </div>
 
       <div class="field full">
-        <label>سبب الرغبة بالانضمام <b>*</b></label>
-        <textarea name="reason" placeholder="عرّفنا بدوافعك للانضمام للفريق..." required></textarea>
+        <label>معلومة للتواصل <b>*</b></label>
+        <input type="text" name="contact" id="contact" placeholder="معرّف انستغرام، تيليجرام، أو أي حساب للتواصل" required>
+        <div class="hint">يستخدمها الفريق للتواصل معك</div>
       </div>
 
       <button type="submit" class="submit" id="btn">
@@ -233,14 +246,47 @@
   const done  = document.getElementById("done");
   const toast = document.getElementById("toast");
 
+  const graduated      = document.getElementById("graduated");
+  const specialtyField = document.getElementById("specialtyField");
+  const specialty      = document.getElementById("specialty");
+  const rejectMsg      = document.getElementById("rejectMsg");
+
   function showToast(msg, isErr=false){
     document.getElementById("toast-txt").textContent = msg;
     toast.className = "toast show" + (isErr ? " err" : "");
     setTimeout(() => toast.className = "toast", 3500);
   }
 
+  // إظهار/إخفاء حقل التخصص ورسالة الرفض حسب إجابة التخرج
+  graduated.addEventListener("change", () => {
+    if(graduated.value === "yes"){
+      specialtyField.style.display = "block";
+      specialty.required = true;
+      rejectMsg.style.display = "none";
+      btn.disabled = false;
+      btn.style.display = "flex";
+    }else if(graduated.value === "no"){
+      specialtyField.style.display = "none";
+      specialty.required = false;
+      specialty.value = "";
+      rejectMsg.style.display = "flex";
+      btn.style.display = "none";   // إخفاء زر الإرسال عند الرفض
+    }else{
+      specialtyField.style.display = "none";
+      specialty.required = false;
+      rejectMsg.style.display = "none";
+      btn.style.display = "flex";
+    }
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+
+    // منع الإرسال إذا غير متخرج
+    if(graduated.value !== "yes"){
+      showToast("الانضمام متاح فقط لخريجي الإعدادية", true);
+      return;
+    }
 
     // تحقق بسيط
     if(!form.checkValidity()){
@@ -253,14 +299,14 @@
     btn.disabled = true;
 
     const data = {
-      fullName:    form.fullName.value.trim(),
-      phone:       form.phone.value.trim(),
-      age:         Number(form.age.value),
-      governorate: form.governorate.value,
-      skills:      form.skills.value.trim(),
-      reason:      form.reason.value.trim(),
-      status:      "pending",          // الحالة الافتراضية: قيد المراجعة
-      createdAt:   serverTimestamp()   // وقت الإرسال
+      fullName:   form.fullName.value.trim(),
+      phone:      form.phone.value.trim(),
+      age:        Number(form.age.value),
+      graduated:  true,                    // وصل لهنا يعني متخرج
+      specialty:  form.specialty.value.trim(),
+      contact:    form.contact.value.trim(),
+      status:     "pending",               // الحالة الافتراضية: قيد المراجعة
+      createdAt:  serverTimestamp()        // وقت الإرسال
     };
 
     try{
@@ -278,10 +324,14 @@
   // تقديم طلب آخر
   document.getElementById("again").addEventListener("click", () => {
     form.reset();
+    specialtyField.style.display = "none";
+    rejectMsg.style.display = "none";
+    specialty.required = false;
     done.style.display = "none";
     form.style.display = "grid";
     btn.classList.remove("loading");
     btn.disabled = false;
+    btn.style.display = "flex";
   });
 </script>
 </body>
