@@ -302,8 +302,8 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, VOLUNTEERS_COLLECTION } from "./firebase-config.js";
-  import { collection, addDoc, serverTimestamp }
+  import { db, VOLUNTEERS_COLLECTION, STATUS_COLLECTION } from "./firebase-config.js";
+  import { collection, addDoc, doc, setDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
   const form  = document.getElementById("form");
@@ -441,7 +441,14 @@
     };
 
     try{
+      // البيانات الكاملة (للأدمن فقط)
       await addDoc(collection(db, VOLUNTEERS_COLLECTION), data);
+      // نسخة خفيفة للتتبع: رقم الطلب + الحالة فقط (قراءة عامة)
+      await setDoc(doc(db, STATUS_COLLECTION, ticket), {
+        ticket:    ticket,
+        status:    "pending",
+        createdAt: serverTimestamp()
+      });
       document.getElementById("ticketNum").textContent = ticket;
       document.getElementById("trackBtn").href = "status.html?t=" + ticket;
       form.style.display = "none";
