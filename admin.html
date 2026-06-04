@@ -181,10 +181,10 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-  import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc }
+  import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
   // عناصر الواجهة
@@ -346,8 +346,11 @@
 
   // ===== 7) تغيير الحالة (قبول/رفض) =====
   window.setStatus = async (id, status) => {
+    const r = allRequests.find(x => x.id === id);
     try{
       await updateDoc(doc(db, VOLUNTEERS_COLLECTION, id), { status });
+      // تحديث نسخة التتبع أيضاً حتى يشوفها المستخدم
+      if(r?.ticket) await setDoc(doc(db, STATUS_COLLECTION, r.ticket), { status }, { merge:true });
       showToast(status==="accepted" ? "تم قبول الطلب ✓" : "تم رفض الطلب");
     }catch(err){ console.error(err); showToast("تعذّر تحديث الحالة", true); }
   };
@@ -355,8 +358,10 @@
   // ===== 8) حذف الطلب =====
   window.removeReq = async (id, name) => {
     if(!confirm(`حذف طلب "${name}" نهائياً؟`)) return;
+    const r = allRequests.find(x => x.id === id);
     try{
       await deleteDoc(doc(db, VOLUNTEERS_COLLECTION, id));
+      if(r?.ticket) await deleteDoc(doc(db, STATUS_COLLECTION, r.ticket));
       showToast("تم حذف الطلب");
     }catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
   };
