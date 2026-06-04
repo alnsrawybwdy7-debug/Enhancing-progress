@@ -152,15 +152,7 @@
   </div>
 
   <div class="controls">
-    <input type="text" id="search" placeholder="🔍 بحث بالاسم، الهاتف، أو المهارة...">
-    <select id="filterGov">
-      <option value="">كل المحافظات</option>
-      <option>بغداد</option><option>البصرة</option><option>نينوى</option><option>أربيل</option>
-      <option>النجف</option><option>كربلاء</option><option>بابل</option><option>ذي قار</option>
-      <option>الأنبار</option><option>ديالى</option><option>كركوك</option><option>صلاح الدين</option>
-      <option>واسط</option><option>ميسان</option><option>المثنى</option><option>القادسية</option>
-      <option>دهوك</option><option>السليمانية</option><option>حلبجة</option>
-    </select>
+    <input type="text" id="search" placeholder="🔍 بحث بالاسم، الهاتف، التخصص، أو معرّف التواصل...">
     <select id="filterStatus">
       <option value="">كل الحالات</option>
       <option value="pending">قيد المراجعة</option>
@@ -265,23 +257,22 @@
   }
 
   // ===== 6) البحث والفلترة =====
-  ["search","filterGov","filterStatus"].forEach(id =>
+  ["search","filterStatus"].forEach(id =>
     document.getElementById(id).addEventListener("input", render)
   );
 
   function render(){
     const term   = document.getElementById("search").value.trim().toLowerCase();
-    const gov    = document.getElementById("filterGov").value;
     const status = document.getElementById("filterStatus").value;
 
     const filtered = allRequests.filter(r => {
       const matchTerm = !term ||
         (r.fullName||"").toLowerCase().includes(term) ||
         (r.phone||"").includes(term) ||
-        (r.skills||"").toLowerCase().includes(term);
-      const matchGov    = !gov    || r.governorate === gov;
+        (r.specialty||"").toLowerCase().includes(term) ||
+        (r.contact||"").toLowerCase().includes(term);
       const matchStatus = !status || r.status === status;
-      return matchTerm && matchGov && matchStatus;
+      return matchTerm && matchStatus;
     });
 
     if(filtered.length === 0){
@@ -300,17 +291,14 @@
         <div class="r-top">
           <div>
             <div class="r-name">${esc(r.fullName)}</div>
-            <div class="r-gov">📍 ${esc(r.governorate)} • ${r.age} سنة</div>
+            <div class="r-gov">🎓 خريج إعدادية • ${r.age} سنة</div>
           </div>
           <span class="pill ${r.status}">${labels[r.status]||""}</span>
         </div>
         <div class="rows">
           <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
-          <div class="row"><span class="k">المهارات:</span><span class="v">${esc(r.skills)}</span></div>
-          <div class="row" style="flex-direction:column;gap:5px">
-            <span class="k">سبب الانضمام:</span>
-            <span class="reason">${esc(r.reason)}</span>
-          </div>
+          <div class="row"><span class="k">التخصص:</span><span class="v">${esc(r.specialty)}</span></div>
+          <div class="row"><span class="k">التواصل:</span><span class="v">${esc(r.contact)}</span></div>
         </div>
         <div class="actions">
           <button class="b-acc" onclick="setStatus('${r.id}','accepted')">✓ قبول</button>
