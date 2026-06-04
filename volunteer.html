@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الانضمام كمتطوع | فريق تعزيز التقدم التطوعي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF6EC;
+    --cream-2:#F3EAD8;
+    --pine:#163F33;
+    --pine-2:#1F5142;
+    --leaf:#3E8E6E;
+    --clay:#D9613A;
+  
+    --clay-soft:#E8865F;
+    --ink:#22322B;
+    --muted:#6E7B72;
+    --line:#E0D5BF;
+    --white:#FFFFFF;
+    --shadow:0 18px 40px -22px rgba(22,63,51,.45);
+    --shadow-sm:0 8px 22px -14px rgba(22,63,51,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"IBM Plex Sans Arabic",sans-serif;
+    background:var(--cream);
+    color:var(--ink);
+    line-height:1.7;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* خلفية زخرفية ناعمة */
+  body::before{
+    content:"";
+    position:fixed;inset:0;z-index:0;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(62,142,110,.10), transparent 38%),
+      radial-gradient(circle at 88% 82%, rgba(217,97,58,.10), transparent 40%);
+    pointer-events:none;
+  }
+  .wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:32px 20px 70px}
+
+  /* الهيدر */
+  header{text-align:center;padding:30px 0 10px;animation:rise .7s ease both}
+  .badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--cream-2);border:1px solid var(--line);
+    color:var(--pine-2);font-weight:600;font-size:.82rem;
+    padding:7px 16px;border-radius:999px;margin-bottom:18px;
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--leaf);box-shadow:0 0 0 4px rgba(62,142,110,.18)}
+  h1{
+    font-family:"Reem Kufi",sans-serif;font-weight:700;
+    font-size:clamp(1.9rem,5vw,3rem);color:var(--pine);
+    letter-spacing:-.5px;line-height:1.25;
+  }
+  h1 span{color:var(--clay)}
+  .sub{color:var(--muted);max-width:520px;margin:14px auto 0;font-size:1.02rem}
+
+  /* البطاقة */
+  .card{
+    background:var(--white);border:1px solid var(--line);
+    border-radius:26px;box-shadow:var(--shadow);
+    padding:clamp(24px,4vw,44px);margin-top:36px;
+    animation:rise .7s .12s ease both;
+  }
+  .card-head{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:22px;border-bottom:2px dashed var(--line)}
+  .card-head .ic{
+    width:48px;height:48px;border-radius:14px;flex:none;
+    background:linear-gradient(135deg,var(--pine),var(--leaf));
+    display:grid;place-items:center;color:#fff;font-size:1.4rem;
+  }
+  .card-head h2{font-family:"Reem Kufi",sans-serif;font-size:1.35rem;color:var(--pine)}
+  .card-head p{font-size:.9rem;color:var(--muted)}
+
+  /* الحقول */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px}
+  .full{grid-column:1/-1}
+  .field label{display:block;font-weight:600;font-size:.95rem;margin-bottom:8px;color:var(--ink)}
+  .field label b{color:var(--clay);font-weight:700}
+  .field input,.field select,.field textarea{
+    width:100%;font-family:inherit;font-size:1rem;color:var(--ink);
+    background:var(--cream);border:1.5px solid var(--line);
+    border-radius:14px;padding:13px 16px;transition:.2s;
+  }
+  .field textarea{resize:vertical;min-height:110px}
+  .field input:focus,.field select:focus,.field textarea:focus{
+    outline:none;border-color:var(--leaf);background:#fff;
+    box-shadow:0 0 0 4px rgba(62,142,110,.14);
+  }
+  .field .hint{font-size:.8rem;color:var(--muted);margin-top:6px}
+
+  /* زر الإرسال */
+  .submit{
+    grid-column:1/-1;margin-top:8px;
+    font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.1rem;
+    color:#fff;background:linear-gradient(135deg,var(--clay),var(--clay-soft));
+    border:none;border-radius:16px;padding:16px;cursor:pointer;
+    box-shadow:var(--shadow-sm);transition:.22s;display:flex;align-items:center;justify-content:center;gap:10px;
+  }
+  .submit:hover{transform:translateY(-2px);box-shadow:0 16px 30px -16px rgba(217,97,58,.6)}
+  .submit:active{transform:translateY(0)}
+  .submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:none}
+  .submit.loading .spin{display:inline-block}
+
+  /* رسالة النجاح */
+  .toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(120px);
+    background:var(--pine);color:#fff;padding:15px 26px;border-radius:14px;
+    font-weight:500;box-shadow:0 20px 40px -18px rgba(0,0,0,.5);z-index:50;
+    display:flex;align-items:center;gap:10px;transition:.4s cubic-bezier(.2,.8,.2,1);max-width:90%;
+  }
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--clay)}
+
+  /* شاشة الشكر */
+  .done{display:none;text-align:center;padding:30px 10px;animation:rise .5s ease both}
+  .done .check{
+    width:84px;height:84px;border-radius:50%;margin:0 auto 22px;
+    background:linear-gradient(135deg,var(--leaf),var(--pine));
+    display:grid;place-items:center;color:#fff;font-size:2.4rem;
+    box-shadow:0 14px 30px -12px rgba(62,142,110,.6);
+  }
+  .done h3{font-family:"Reem Kufi",sans-serif;font-size:1.7rem;color:var(--pine);margin-bottom:10px}
+  .done p{color:var(--muted);max-width:420px;margin:0 auto 26px}
+  .again{
+    font-family:inherit;font-weight:600;color:var(--pine);background:var(--cream-2);
+    border:1.5px solid var(--line);border-radius:12px;padding:12px 26px;cursor:pointer;transition:.2s;
+  }
+  .again:hover{background:var(--line)}
+
+  footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.85rem}
+
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="badge"><span class="dot"></span> فريق تعزيز التقدم التطوعي</span>
+    <h1>انضم إلينا <span>كمتطوع</span></h1>
+    <p class="sub">عبّئ النموذج أدناه وسيتواصل معك فريقنا. مساهمتك خطوة نحو تقدمٍ أكبر للمجتمع.</p>
+  </header>
+
+  <div class="card" id="card">
+    <div class="card-head">
+      <div class="ic">✦</div>
+      <div>
+        <h2>نموذج طلب الانضمام</h2>
+        <p>الحقول المؤشرة بـ <b style="color:var(--clay)">*</b> إلزامية</p>
+      </div>
+    </div>
+
+    <form id="form" class="grid" novalidate>
+      <div class="field">
+        <label>الاسم الكامل <b>*</b></label>
+        <input type="text" name="fullName" placeholder="الاسم الثلاثي" required>
+      </div>
+
+      <div class="field">
+        <label>رقم الهاتف <b>*</b></label>
+        <input type="tel" name="phone" placeholder="07XX XXX XXXX" inputmode="numeric" required>
+      </div>
+
+      <div class="field">
+        <label>العمر <b>*</b></label>
+        <input type="number" name="age" placeholder="مثال: 22" min="14" max="90" required>
+      </div>
+
+      <div class="field">
+        <label>المحافظة <b>*</b></label>
+        <select name="governorate" required>
+          <option value="" disabled selected>اختر المحافظة</option>
+          <option>بغداد</option><option>البصرة</option><option>نينوى</option>
+          <option>أربيل</option><option>النجف</option><option>كربلاء</option>
+          <option>بابل</option><option>ذي قار</option><option>الأنبار</option>
+          <option>ديالى</option><option>كركوك</option><option>صلاح الدين</option>
+          <option>واسط</option><option>ميسان</option><option>المثنى</option>
+          <option>القادسية</option><option>دهوك</option><option>السليمانية</option>
+          <option>حلبجة</option>
+        </select>
+      </div>
+
+      <div class="field full">
+        <label>التخصص / المهارات <b>*</b></label>
+        <input type="text" name="skills" placeholder="مثال: تصميم، برمجة، تنظيم فعاليات، إعلام..." required>
+        <div class="hint">اكتب المجالات اللي تقدر تتطوع بيها</div>
+      </div>
+
+      <div class="field full">
+        <label>سبب الرغبة بالانضمام <b>*</b></label>
+        <textarea name="reason" placeholder="عرّفنا بدوافعك للانضمام للفريق..." required></textarea>
+      </div>
+
+      <button type="submit" class="submit" id="btn">
+        <span class="spin"></span>
+        <span class="btn-txt">إرسال الطلب</span>
+      </button>
+    </form>
+
+    <!-- شاشة الشكر بعد الإرسال -->
+    <div class="done" id="done">
+      <div class="check">✓</div>
+      <h3>تم استلام طلبك بنجاح</h3>
+      <p>شكراً لك! وصل طلبك إلى فريق تعزيز التقدم التطوعي، وسيتم مراجعته والتواصل معك قريباً.</p>
+      <button class="again" id="again">تقديم طلب آخر</button>
+    </div>
+  </div>
+
+  <footer>© فريق تعزيز التقدم التطوعي — جميع الحقوق محفوظة</footer>
+</div>
+
+<div class="toast" id="toast"><span id="toast-txt"></span></div>
+
+<!-- ===== كود Firebase ===== -->
+<script type="module">
+  import { db, VOLUNTEERS_COLLECTION } from "./firebase-config.js";
+  import { collection, addDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+  const form  = document.getElementById("form");
+  const btn   = document.getElementById("btn");
+  const done  = document.getElementById("done");
+  const toast = document.getElementById("toast");
+
+  function showToast(msg, isErr=false){
+    document.getElementById("toast-txt").textContent = msg;
+    toast.className = "toast show" + (isErr ? " err" : "");
+    setTimeout(() => toast.className = "toast", 3500);
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    // تحقق بسيط
+    if(!form.checkValidity()){
+      showToast("الرجاء تعبئة جميع الحقول الإلزامية", true);
+      form.reportValidity();
+      return;
+    }
+
+    btn.classList.add("loading");
+    btn.disabled = true;
+
+    const data = {
+      fullName:    form.fullName.value.trim(),
+      phone:       form.phone.value.trim(),
+      age:         Number(form.age.value),
+      governorate: form.governorate.value,
+      skills:      form.skills.value.trim(),
+      reason:      form.reason.value.trim(),
+      status:      "pending",          // الحالة الافتراضية: قيد المراجعة
+      createdAt:   serverTimestamp()   // وقت الإرسال
+    };
+
+    try{
+      await addDoc(collection(db, VOLUNTEERS_COLLECTION), data);
+      form.style.display = "none";
+      done.style.display = "block";
+    }catch(err){
+      console.error(err);
+      showToast("صار خطأ أثناء الإرسال، حاول مرة ثانية", true);
+      btn.classList.remove("loading");
+      btn.disabled = false;
+    }
+  });
+
+  // تقديم طلب آخر
+  document.getElementById("again").addEventListener("click", () => {
+    form.reset();
+    done.style.display = "none";
+    form.style.display = "grid";
+    btn.classList.remove("loading");
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>
