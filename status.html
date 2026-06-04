@@ -112,8 +112,8 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, VOLUNTEERS_COLLECTION } from "./firebase-config.js";
-  import { collection, query, where, getDocs, limit }
+  import { db, STATUS_COLLECTION } from "./firebase-config.js";
+  import { doc, getDoc }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
   const input    = document.getElementById("ticketInput");
@@ -151,16 +151,11 @@
     result.style.display = "none";
 
     try{
-      const q = query(
-        collection(db, VOLUNTEERS_COLLECTION),
-        where("ticket", "==", ticket),
-        limit(1)
-      );
-      const snap = await getDocs(q);
-      if(snap.empty){
+      const snap = await getDoc(doc(db, STATUS_COLLECTION, ticket));
+      if(!snap.exists()){
         showResult("notfound");
       }else{
-        const status = snap.docs[0].data().status || "pending";
+        const status = snap.data().status || "pending";
         showResult(status, ticket);
       }
     }catch(err){
