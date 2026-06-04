@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>متابعة الطلب | فريق تعزيز التقدم التطوعي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF6EC;--cream-2:#F3EAD8;--pine:#163F33;--pine-2:#1F5142;
+    --leaf:#3E8E6E;--clay:#D9613A;--clay-soft:#E8865F;--ink:#22322B;
+    --muted:#6E7B72;--line:#E0D5BF;--white:#fff;
+    --amber:#C98A2B;--red:#C44A36;--green:#2E7D5B;
+    --shadow:0 18px 40px -22px rgba(22,63,51,.45);
+    --shadow-sm:0 8px 22px -14px rgba(22,63,51,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"IBM Plex Sans Arabic",sans-serif;background:var(--cream);color:var(--ink);
+    line-height:1.7;min-height:100vh;position:relative;overflow-x:hidden}
+  body::before{content:"";position:fixed;inset:0;z-index:0;background:
+    radial-gradient(circle at 14% 16%, rgba(62,142,110,.10), transparent 38%),
+    radial-gradient(circle at 86% 84%, rgba(217,97,58,.10), transparent 40%);pointer-events:none}
+  .wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:40px 20px 70px}
+
+  header{text-align:center;padding:24px 0 6px;animation:rise .7s ease both}
+  .badge{display:inline-flex;align-items:center;gap:8px;background:var(--cream-2);border:1px solid var(--line);
+    color:var(--pine-2);font-weight:600;font-size:.82rem;padding:7px 16px;border-radius:999px;margin-bottom:18px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--leaf);box-shadow:0 0 0 4px rgba(62,142,110,.18)}
+  h1{font-family:"Reem Kufi",sans-serif;font-weight:700;font-size:clamp(1.7rem,5vw,2.5rem);color:var(--pine);letter-spacing:-.5px}
+  h1 span{color:var(--clay)}
+  .sub{color:var(--muted);max-width:440px;margin:12px auto 0}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);
+    padding:clamp(24px,4vw,40px);margin-top:32px;animation:rise .7s .12s ease both}
+
+  label{display:block;font-weight:600;font-size:.95rem;margin-bottom:9px;color:var(--ink)}
+  .row{display:flex;gap:10px}
+  input{flex:1;font-family:inherit;font-size:1.1rem;color:var(--ink);background:var(--cream);
+    border:1.5px solid var(--line);border-radius:13px;padding:14px 16px;transition:.2s;
+    text-align:center;letter-spacing:2px;direction:ltr;text-transform:uppercase}
+  input:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
+  .btn{font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1rem;color:#fff;
+    background:linear-gradient(135deg,var(--pine),var(--pine-2));border:none;border-radius:13px;
+    padding:0 26px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+  .btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .hint{font-size:.82rem;color:var(--muted);margin-top:10px;text-align:center}
+  .spin{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:none}
+  .btn.loading .spin{display:inline-block}
+
+  /* بطاقة النتيجة */
+  .result{display:none;margin-top:26px;text-align:center;animation:rise .4s ease both}
+  .result .ic{width:84px;height:84px;border-radius:50%;margin:0 auto 18px;display:grid;place-items:center;font-size:2.4rem;color:#fff}
+  .result .st-title{font-family:"Reem Kufi",sans-serif;font-size:1.6rem;margin-bottom:8px}
+  .result .st-desc{color:var(--muted);max-width:400px;margin:0 auto}
+  .result .tk{display:inline-block;margin-top:16px;background:var(--cream-2);border:1px solid var(--line);
+    border-radius:10px;padding:6px 16px;font-weight:700;color:var(--pine);direction:ltr;letter-spacing:1px}
+
+  .r-pending .ic{background:linear-gradient(135deg,var(--amber),#E0A93F)}
+  .r-pending .st-title{color:var(--amber)}
+  .r-accepted .ic{background:linear-gradient(135deg,var(--green),var(--leaf))}
+  .r-accepted .st-title{color:var(--green)}
+  .r-rejected .ic{background:linear-gradient(135deg,var(--red),var(--clay-soft))}
+  .r-rejected .st-title{color:var(--red)}
+  .r-notfound .ic{background:linear-gradient(135deg,var(--muted),#9AA69E)}
+  .r-notfound .st-title{color:var(--muted)}
+
+  .back{display:inline-block;margin-top:24px;color:var(--leaf);font-weight:600;font-size:.9rem;
+    text-decoration:none;border-bottom:1.5px solid var(--leaf)}
+  .back:hover{color:var(--pine);border-color:var(--pine)}
+  footer{text-align:center;margin-top:30px;color:var(--muted);font-size:.85rem}
+
+  @keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  @media(max-width:520px){.row{flex-direction:column}.btn{padding:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <span class="badge"><span class="dot"></span> فريق تعزيز التقدم التطوعي</span>
+    <h1>متابعة <span>طلبك</span></h1>
+    <p class="sub">اكتب رقم طلبك لمعرفة حالته الحالية.</p>
+  </header>
+
+  <div class="card">
+    <label>رقم الطلب</label>
+    <div class="row">
+      <input type="text" id="ticketInput" placeholder="VLT-XXXX" maxlength="8" autocomplete="off">
+      <button class="btn" id="checkBtn"><span class="spin"></span><span>تحقق</span></button>
+    </div>
+    <div class="hint">مثال: VLT-7K2M — الرقم اللي وصلك عند تقديم الطلب</div>
+
+    <!-- بطاقة النتيجة -->
+    <div class="result" id="result">
+      <div class="ic" id="resIc"></div>
+      <div class="st-title" id="resTitle"></div>
+      <div class="st-desc" id="resDesc"></div>
+      <div class="tk" id="resTicket" style="display:none"></div>
+    </div>
+  </div>
+
+  <div style="text-align:center">
+    <a class="back" href="volunteer.html">← تقديم طلب جديد</a>
+  </div>
+
+  <footer>© فريق تعزيز التقدم التطوعي</footer>
+</div>
+
+<!-- ===== كود Firebase ===== -->
+<script type="module">
+  import { db, VOLUNTEERS_COLLECTION } from "./firebase-config.js";
+  import { collection, query, where, getDocs, limit }
+    from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+  const input    = document.getElementById("ticketInput");
+  const btn      = document.getElementById("checkBtn");
+  const result   = document.getElementById("result");
+  const resIc    = document.getElementById("resIc");
+  const resTitle = document.getElementById("resTitle");
+  const resDesc  = document.getElementById("resDesc");
+  const resTicket= document.getElementById("resTicket");
+
+  // محتوى كل حالة (نعرض الحالة فقط — بدون أي بيانات شخصية)
+  const STATES = {
+    pending:  { cls:"r-pending",  ic:"🕐", title:"قيد المراجعة", desc:"طلبك وصل ويتم مراجعته حالياً. يرجى المتابعة لاحقاً." },
+    accepted: { cls:"r-accepted", ic:"🎉", title:"تم القبول",     desc:"مبروك! تم قبول طلبك. سيتواصل معك الفريق عبر معلومة التواصل التي قدّمتها." },
+    rejected: { cls:"r-rejected", ic:"✕",  title:"لم يتم القبول",  desc:"نعتذر، لم يتم قبول طلبك هذه المرة. نشكر لك اهتمامك." },
+    notfound: { cls:"r-notfound", ic:"🔎", title:"الرقم غير موجود", desc:"تأكد من رقم الطلب وحاول مرة أخرى." }
+  };
+
+  function showResult(key, ticket){
+    const s = STATES[key];
+    result.className = "result " + s.cls;
+    resIc.textContent = s.ic;
+    resTitle.textContent = s.title;
+    resDesc.textContent = s.desc;
+    if(ticket){ resTicket.textContent = ticket; resTicket.style.display = "inline-block"; }
+    else resTicket.style.display = "none";
+    result.style.display = "block";
+  }
+
+  async function checkStatus(){
+    const ticket = input.value.trim().toUpperCase();
+    if(!ticket){ input.focus(); return; }
+
+    btn.classList.add("loading"); btn.disabled = true;
+    result.style.display = "none";
+
+    try{
+      const q = query(
+        collection(db, VOLUNTEERS_COLLECTION),
+        where("ticket", "==", ticket),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if(snap.empty){
+        showResult("notfound");
+      }else{
+        const status = snap.docs[0].data().status || "pending";
+        showResult(status, ticket);
+      }
+    }catch(err){
+      console.error(err);
+      showResult("notfound");
+      resDesc.textContent = "تعذّر الاتصال، حاول مرة أخرى.";
+    }finally{
+      btn.classList.remove("loading"); btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener("click", checkStatus);
+  input.addEventListener("keydown", e => { if(e.key === "Enter") checkStatus(); });
+
+  // لو فتح الرابط ومعه رقم جاهز: status.html?t=VLT-XXXX
+  const pre = new URLSearchParams(location.search).get("t");
+  if(pre){ input.value = pre.toUpperCase(); checkStatus(); }
+</script>
+</body>
+</html>
