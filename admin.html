@@ -159,7 +159,7 @@
   </div>
 
   <div class="controls">
-    <input type="text" id="search" placeholder="🔍 بحث بالاسم، الهاتف، التخصص، أو معرّف التواصل...">
+    <input type="text" id="search" placeholder="🔍 بحث بالاسم، رقم الطلب، الهاتف، التخصص...">
     <select id="filterStatus">
       <option value="">كل الحالات</option>
       <option value="pending">قيد المراجعة</option>
@@ -294,6 +294,7 @@
     const filtered = allRequests.filter(r => {
       const matchTerm = !term ||
         (r.fullName||"").toLowerCase().includes(term) ||
+        (r.ticket||"").toLowerCase().includes(term) ||
         (r.phone||"").includes(term) ||
         (r.specialty||"").toLowerCase().includes(term) ||
         (r.contact||"").toLowerCase().includes(term);
@@ -322,6 +323,7 @@
           <span class="pill ${r.status}">${labels[r.status]||""}</span>
         </div>
         <div class="rows">
+          <div class="row"><span class="k">رقم الطلب:</span><span class="v" style="direction:ltr;font-weight:700;color:var(--pine)">${esc(r.ticket || "—")}</span></div>
           <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
           <div class="row"><span class="k">التخصص:</span><span class="v">${esc(r.specialty)}</span></div>
           <div class="row"><span class="k">التواصل:</span><span class="v">${esc(r.contact)}</span></div>
