@@ -54,6 +54,10 @@
   .logout{display:flex;align-items:center;gap:8px;font-family:inherit;font-weight:600;font-size:.9rem;color:var(--clay);
     background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:10px 18px;cursor:pointer;transition:.2s}
   .logout:hover{background:var(--clay);color:#fff;border-color:var(--clay)}
+  .export-btn{display:flex;align-items:center;gap:8px;font-family:inherit;font-weight:600;font-size:.9rem;color:#fff;
+    background:linear-gradient(135deg,var(--pine),var(--leaf));border:none;border-radius:11px;padding:10px 18px;cursor:pointer;transition:.2s}
+  .export-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+  .export-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
 
   /* الإحصائيات */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px}
@@ -149,7 +153,10 @@
         <p id="adminEmail"></p>
       </div>
     </div>
-    <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="export-btn" id="exportBtn">📊 تصدير Excel</button>
+      <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
+    </div>
   </div>
 
   <div class="stats">
@@ -179,6 +186,9 @@
   <button class="lb-close" id="lbClose">✕</button>
   <img id="lightboxImg" src="" alt="الهوية الجامعية">
 </div>
+
+<!-- مكتبة إنشاء ملفات Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
@@ -263,16 +273,33 @@
   });
 
   // ===== 4) جلب الطلبات لحظياً من Firestore =====
+  let backfilled = false; // لمزامنة الطلبات القديمة مرة واحدة
+
   function startListening(){
     const q = query(collection(db, VOLUNTEERS_COLLECTION), orderBy("createdAt","desc"));
     unsubscribe = onSnapshot(q, (snap) => {
       allRequests = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       updateStats();
       render();
+      backfillStatus(); // مزامنة التتبع برقم الهاتف للطلبات القديمة
     }, (err) => {
       console.error(err);
       showToast("تعذّر جلب الطلبات", true);
     });
+  }
+
+  // نقل (رقم الهاتف + الحالة) لمجموعة التتبع الآمنة — تلقائياً مرة واحدة
+  async function backfillStatus(){
+    if(backfilled) return;
+    backfilled = true;
+    for(const r of allRequests){
+      if(!r.ticket || !r.phone) continue;
+      try{
+        await setDoc(doc(db, STATUS_COLLECTION, r.ticket),
+          { ticket:r.ticket, phone:r.phone, status:r.status||"pending" },
+          { merge:true });
+      }catch(e){ /* تجاهل أي خطأ فردي */ }
+    }
   }
 
   // ===== 5) الإحصائيات =====
@@ -372,6 +399,54 @@
       showToast("تم حذف الطلب");
     }catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
   };
+
+  // ===== 9) تصدير Excel (مع إزالة المكرر حسب الاسم + الهاتف، نحتفظ بالأحدث) =====
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    if(allRequests.length === 0){ showToast("لا توجد طلبات للتصدير", true); return; }
+
+    // allRequests مرتبة من الأحدث للأقدم — نحتفظ بأول ظهور (الأحدث) لكل شخص
+    const seen = new Set();
+    const unique = [];
+    for(const r of allRequests){
+      const key = (r.fullName||"").trim().toLowerCase() + "||" + (r.phone||"").trim();
+      if(seen.has(key)) continue;
+      seen.add(key);
+      unique.push(r);
+    }
+
+    const labels = { pending:"قيد المراجعة", accepted:"مقبول", rejected:"مرفوض" };
+
+    // تحويل تاريخ Firestore لصيغة مقروءة
+    const fmtDate = (ts) => {
+      try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }
+      catch(e){ return ""; }
+    };
+
+    // صفوف الملف (العناوين + البيانات) — بدون صور
+    const header = ["رقم الطلب","الاسم الكامل","رقم الهاتف","العمر","التخصص","معلومة التواصل","الحالة","تاريخ التقديم"];
+    const rows = unique.map(r => ([
+      r.ticket || "",
+      r.fullName || "",
+      r.phone || "",
+      r.age || "",
+      r.specialty || "",
+      r.contact || "",
+      labels[r.status] || r.status || "",
+      fmtDate(r.createdAt)
+    ]));
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:12},{wch:22},{wch:15},{wch:7},{wch:18},{wch:20},{wch:14},{wch:20}];
+
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };  // اتجاه من اليمين لليسار
+    XLSX.utils.book_append_sheet(wb, ws, "المتطوعون");
+
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `volunteers-${today}.xlsx`);
+    showToast(`تم تصدير ${unique.length} متطوع (بدون تكرار) ✓`);
+  });
 </script>
 </body>
 </html>
