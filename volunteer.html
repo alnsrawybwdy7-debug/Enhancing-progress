@@ -189,6 +189,9 @@
   .again:hover{background:var(--line)}
 
   footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.85rem}
+  footer .dev-credit{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.8rem;color:var(--pine-2);font-weight:600;letter-spacing:.2px}
+  footer .dev-credit b{color:var(--pine);font-weight:700}
+  footer .dev-credit .spark{color:var(--leaf)}
 
   @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
   @keyframes rot{to{transform:rotate(360deg)}}
@@ -323,7 +326,10 @@
     </div>
   </div>
 
-  <footer>© فريق تعزيز التقدم التطوعي — جميع الحقوق محفوظة</footer>
+  <footer>
+    © فريق تعزيز التقدم التطوعي — جميع الحقوق محفوظة
+    <span class="dev-credit"><span class="spark">✦</span> تصميم وتطوير <b>عبدالله عبدالسلام</b></span>
+  </footer>
 </div>
 
 <div class="toast" id="toast"><span id="toast-txt"></span></div>
@@ -491,9 +497,10 @@
     try{
       // البيانات الكاملة (للأدمن فقط)
       await addDoc(collection(db, VOLUNTEERS_COLLECTION), data);
-      // نسخة خفيفة للتتبع: رقم الطلب + الحالة فقط (قراءة عامة)
+      // نسخة خفيفة للتتبع: رقم الطلب + الهاتف + الحالة فقط (بدون بيانات حساسة)
       await setDoc(doc(db, STATUS_COLLECTION, ticket), {
         ticket:    ticket,
+        phone:     form.phone.value.trim(),
         status:    "pending",
         createdAt: serverTimestamp()
       });
