@@ -26,3 +26,6 @@ export const VOLUNTEERS_COLLECTION = "volunteers";
 
 // مجموعة الحالات: رقم الطلب + الحالة فقط (قراءة عامة لصفحة التتبع)
 export const STATUS_COLLECTION = "status";
+
+// مجموعة حضور الورشة (بيانات البوابة — للأدمن فقط)
+export const WORKSHOP_COLLECTION = "workshop";
