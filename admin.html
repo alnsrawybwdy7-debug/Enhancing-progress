@@ -571,9 +571,21 @@
           <div class="row"><span class="k">وقت التسجيل:</span><span class="v">${fmt(r.createdAt)}</span></div>
           ${!r.applied ? `<div class="ws-alert">⚠️ هذا الشخص غير مقدّم عبر رابط الانضمام</div>` : ``}
         </div>
+        <div class="actions">
+          <button class="b-del" style="flex:1;width:auto" onclick="removeWs('${r.id}','${esc(r.fullName)}')">🗑 حذف السجل</button>
+        </div>
       </div>
     `).join("");
   }
+
+  // حذف سجل حضور ورشة (لتصحيح خطأ إدخال)
+  window.removeWs = async (id, name) => {
+    if(!confirm(`حذف سجل حضور "${name}"؟\nيمكنك إعادة إدخاله من بوابة الحضور.`)) return;
+    try{
+      await deleteDoc(doc(db, WORKSHOP_COLLECTION, id));
+      showToast("تم حذف السجل");
+    }catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
+  };
 
   // ===== 12) تصدير حضور الورشة =====
   document.getElementById("exportWsBtn").addEventListener("click", () => {
