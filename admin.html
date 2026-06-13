@@ -58,6 +58,21 @@
     background:linear-gradient(135deg,var(--pine),var(--leaf));border:none;border-radius:11px;padding:10px 18px;cursor:pointer;transition:.2s}
   .export-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
   .export-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .ws-link{display:flex;align-items:center;gap:7px;font-family:inherit;font-weight:600;font-size:.9rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:10px 16px;cursor:pointer;text-decoration:none;transition:.2s}
+  .ws-link:hover{background:var(--cream-2)}
+  /* تبويبات */
+  .tabs{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap}
+  .tab{font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1rem;color:var(--muted);background:#fff;border:1.5px solid var(--line);border-radius:13px;padding:12px 22px;cursor:pointer;transition:.2s}
+  .tab:hover{border-color:var(--leaf)}
+  .tab.active{background:linear-gradient(135deg,var(--pine),var(--leaf));color:#fff;border-color:var(--pine)}
+  .sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .sec-title{font-family:"Reem Kufi",sans-serif;font-size:1.3rem;color:var(--pine)}
+  /* شارات حضور الورشة */
+  .pill.paid-yes{background:#DEF1E7;color:var(--green)}
+  .pill.paid-no{background:#F8E0DB;color:var(--red)}
+  .pill.applied-yes{background:#DEF1E7;color:var(--green)}
+  .pill.applied-no{background:#FBF0DA;color:var(--amber)}
+  .ws-alert{background:#FBF0DA;color:var(--amber);border:1px solid #EBD9B0;border-radius:10px;padding:9px 12px;font-size:.85rem;font-weight:600;margin-top:12px}
 
   /* الإحصائيات */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px}
@@ -154,29 +169,64 @@
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="export-btn" id="exportBtn">📊 تصدير Excel</button>
+      <a class="ws-link" href="workshop.html">📋 بوابة الحضور</a>
       <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat all"><div class="num" id="cAll">0</div><div class="lbl">إجمالي الطلبات</div></div>
-    <div class="stat pend"><div class="num" id="cPend">0</div><div class="lbl">قيد المراجعة</div></div>
-    <div class="stat acc"><div class="num" id="cAcc">0</div><div class="lbl">مقبولة</div></div>
-    <div class="stat rej"><div class="num" id="cRej">0</div><div class="lbl">مرفوضة</div></div>
+  <!-- تبويبات -->
+  <div class="tabs">
+    <button class="tab active" data-tab="applicants">👥 المتقدّمون</button>
+    <button class="tab" data-tab="workshop">📋 حضور الورشة</button>
   </div>
 
-  <div class="controls">
-    <input type="text" id="search" placeholder="🔍 بحث بالاسم، رقم الطلب، الهاتف، التخصص...">
-    <select id="filterStatus">
-      <option value="">كل الحالات</option>
-      <option value="pending">قيد المراجعة</option>
-      <option value="accepted">مقبولة</option>
-      <option value="rejected">مرفوضة</option>
-    </select>
-  </div>
+  <!-- قسم المتقدّمين (عبر رابط الانضمام) -->
+  <section id="sec-applicants">
+    <div class="sec-head">
+      <h2 class="sec-title">طلبات الانضمام</h2>
+      <button class="export-btn" id="exportBtn">📊 تصدير Excel</button>
+    </div>
 
-  <div class="list" id="list"></div>
+    <div class="stats">
+      <div class="stat all"><div class="num" id="cAll">0</div><div class="lbl">إجمالي الطلبات</div></div>
+      <div class="stat pend"><div class="num" id="cPend">0</div><div class="lbl">قيد المراجعة</div></div>
+      <div class="stat acc"><div class="num" id="cAcc">0</div><div class="lbl">مقبولة</div></div>
+      <div class="stat rej"><div class="num" id="cRej">0</div><div class="lbl">مرفوضة</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="search" placeholder="🔍 بحث بالاسم، رقم الطلب، الهاتف، التخصص...">
+      <select id="filterStatus">
+        <option value="">كل الحالات</option>
+        <option value="pending">قيد المراجعة</option>
+        <option value="accepted">مقبولة</option>
+        <option value="rejected">مرفوضة</option>
+      </select>
+    </div>
+
+    <div class="list" id="list"></div>
+  </section>
+
+  <!-- قسم حضور الورشة (عبر البوابة) -->
+  <section id="sec-workshop" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">حضور الورشة</h2>
+      <button class="export-btn" id="exportWsBtn">📊 تصدير Excel</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat all"><div class="num" id="wsAll">0</div><div class="lbl">إجمالي الحاضرين</div></div>
+      <div class="stat acc"><div class="num" id="wsApplied">0</div><div class="lbl">مقدّمون عبر الرابط</div></div>
+      <div class="stat pend"><div class="num" id="wsPaid">0</div><div class="lbl">دفعوا الرسوم</div></div>
+      <div class="stat rej"><div class="num" id="wsNot">0</div><div class="lbl">غير مقدّمين</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="wsSearch" placeholder="🔍 بحث بالاسم، الهاتف، التخصص...">
+    </div>
+
+    <div class="list" id="wsList"></div>
+  </section>
 </div>
 
 <div class="toast" id="toast"><span id="toastTxt"></span></div>
@@ -192,7 +242,7 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
   import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc }
@@ -209,6 +259,8 @@
 
   let allRequests = [];   // كل الطلبات (تتحدث لحظياً)
   let unsubscribe = null; // لإيقاف الاستماع عند الخروج
+  let wsAll = [];         // حضور الورشة (يتحدث لحظياً)
+  let wsUnsub = null;     // لإيقاف استماع الورشة
 
   // تكبير صورة الهوية عند الضغط عليها
   const lightbox    = document.getElementById("lightbox");
@@ -264,11 +316,13 @@
       app.style.display = "block";
       document.getElementById("adminEmail").textContent = user.email;
       startListening();
+      startWorkshopListening();
     }else{
       app.style.display = "none";
       loginScreen.style.display = "grid";
       loginForm.reset();
       if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+      if(wsUnsub){ wsUnsub(); wsUnsub = null; }
     }
   });
 
@@ -446,6 +500,107 @@
     const today = new Date().toISOString().slice(0,10);
     XLSX.writeFile(wb, `volunteers-${today}.xlsx`);
     showToast(`تم تصدير ${unique.length} متطوع (بدون تكرار) ✓`);
+  });
+
+  // ===== 10) التبويبات =====
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      const which = tab.dataset.tab;
+      document.getElementById("sec-applicants").style.display = which === "applicants" ? "block" : "none";
+      document.getElementById("sec-workshop").style.display   = which === "workshop"   ? "block" : "none";
+    });
+  });
+
+  // ===== 11) حضور الورشة — جلب لحظي =====
+  function startWorkshopListening(){
+    const q = query(collection(db, WORKSHOP_COLLECTION), orderBy("createdAt","desc"));
+    wsUnsub = onSnapshot(q, (snap) => {
+      wsAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateWsStats();
+      renderWs();
+    }, (err) => { console.error(err); });
+  }
+
+  function updateWsStats(){
+    document.getElementById("wsAll").textContent     = wsAll.length;
+    document.getElementById("wsApplied").textContent = wsAll.filter(r => r.applied).length;
+    document.getElementById("wsPaid").textContent    = wsAll.filter(r => r.paid).length;
+    document.getElementById("wsNot").textContent     = wsAll.filter(r => !r.applied).length;
+  }
+
+  document.getElementById("wsSearch").addEventListener("input", renderWs);
+
+  function renderWs(){
+    const term = document.getElementById("wsSearch").value.trim().toLowerCase();
+    const wsListEl = document.getElementById("wsList");
+
+    const filtered = wsAll.filter(r =>
+      !term ||
+      (r.fullName||"").toLowerCase().includes(term) ||
+      (r.phone||"").includes(term) ||
+      (r.specialty||"").toLowerCase().includes(term)
+    );
+
+    if(filtered.length === 0){
+      wsListEl.innerHTML = `<div class="empty">
+        <div class="e-ic">📋</div>
+        <h3>لا يوجد حاضرون</h3>
+        <p>${wsAll.length===0 ? "لم يُسجَّل أي حاضر بعد" : "لا توجد نتائج مطابقة"}</p>
+      </div>`;
+      return;
+    }
+
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+
+    wsListEl.innerHTML = filtered.map(r => `
+      <div class="req">
+        <div class="r-top">
+          <div>
+            <div class="r-name">${esc(r.fullName)}</div>
+            <div class="r-gov">${esc(r.specialty||"")}</div>
+          </div>
+          <span class="pill ${r.applied ? "applied-yes" : "applied-no"}">${r.applied ? "مقدّم عبر الرابط" : "غير مقدّم"}</span>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
+          <div class="row"><span class="k">البطاقة الوطنية:</span><span class="v">${esc(r.nationalId||"")}</span></div>
+          <div class="row"><span class="k">رسوم الاشتراك:</span><span class="v"><span class="pill ${r.paid ? "paid-yes":"paid-no"}">${r.paid ? "✓ دفع" : "✕ لم يدفع"}</span></span></div>
+          ${r.linkedTicket ? `<div class="row"><span class="k">رقم الطلب:</span><span class="v" style="direction:ltr;font-weight:700;color:var(--pine)">${esc(r.linkedTicket)}</span></div>` : ``}
+          <div class="row"><span class="k">وقت التسجيل:</span><span class="v">${fmt(r.createdAt)}</span></div>
+          ${!r.applied ? `<div class="ws-alert">⚠️ هذا الشخص غير مقدّم عبر رابط الانضمام</div>` : ``}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // ===== 12) تصدير حضور الورشة =====
+  document.getElementById("exportWsBtn").addEventListener("click", () => {
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    if(wsAll.length === 0){ showToast("لا يوجد حاضرون للتصدير", true); return; }
+
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
+    const rows = wsAll.map(r => ([
+      r.fullName || "",
+      r.phone || "",
+      r.nationalId || "",
+      r.specialty || "",
+      r.paid ? "نعم" : "لا",
+      r.applied ? "نعم" : "لا",
+      r.linkedTicket || "",
+      fmt(r.createdAt)
+    ]));
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:22},{wch:15},{wch:18},{wch:18},{wch:12},{wch:16},{wch:14},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
+    XLSX.utils.book_append_sheet(wb, ws, "حضور الورشة");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `workshop-attendance-${today}.xlsx`);
+    showToast(`تم تصدير ${wsAll.length} حاضر ✓`);
   });
 </script>
 </body>
