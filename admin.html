@@ -73,6 +73,10 @@
   .pill.applied-yes{background:#DEF1E7;color:var(--green)}
   .pill.applied-no{background:#FBF0DA;color:var(--amber)}
   .ws-alert{background:#FBF0DA;color:var(--amber);border:1px solid #EBD9B0;border-radius:10px;padding:9px 12px;font-size:.85rem;font-weight:600;margin-top:12px}
+  .app-footer{text-align:center;margin-top:40px;color:var(--muted);font-size:.85rem}
+  .app-footer .dev-credit{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.8rem;color:var(--pine-2);font-weight:600;letter-spacing:.2px}
+  .app-footer .dev-credit b{color:var(--pine);font-weight:700}
+  .app-footer .dev-credit .spark{color:var(--leaf)}
 
   /* الإحصائيات */
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:26px}
@@ -227,6 +231,11 @@
 
     <div class="list" id="wsList"></div>
   </section>
+
+  <footer class="app-footer">
+    © فريق تعزيز التقدم التطوعي
+    <span class="dev-credit"><span class="spark">✦</span> تصميم وتطوير <b>عبدالله عبدالسلام</b></span>
+  </footer>
 </div>
 
 <div class="toast" id="toast"><span id="toastTxt"></span></div>
