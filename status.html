@@ -71,6 +71,9 @@
     text-decoration:none;border-bottom:1.5px solid var(--leaf)}
   .back:hover{color:var(--pine);border-color:var(--pine)}
   footer{text-align:center;margin-top:30px;color:var(--muted);font-size:.85rem}
+  footer .dev-credit{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.8rem;color:var(--pine-2);font-weight:600;letter-spacing:.2px}
+  footer .dev-credit b{color:var(--pine);font-weight:700}
+  footer .dev-credit .spark{color:var(--leaf)}
 
   @keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   @keyframes rot{to{transform:rotate(360deg)}}
@@ -83,16 +86,16 @@
   <header>
     <span class="badge"><span class="dot"></span> فريق تعزيز التقدم التطوعي</span>
     <h1>متابعة <span>طلبك</span></h1>
-    <p class="sub">اكتب رقم طلبك لمعرفة حالته الحالية.</p>
+    <p class="sub">اكتب رقم هاتفك لمعرفة حالة طلبك.</p>
   </header>
 
   <div class="card">
-    <label>رقم الطلب</label>
+    <label>رقم الهاتف</label>
     <div class="row">
-      <input type="text" id="ticketInput" placeholder="VLT-XXXX" maxlength="8" autocomplete="off">
+      <input type="tel" id="ticketInput" placeholder="07XXXXXXXXX" maxlength="15" inputmode="numeric" autocomplete="off">
       <button class="btn" id="checkBtn"><span class="spin"></span><span>تحقق</span></button>
     </div>
-    <div class="hint">مثال: VLT-7K2M — الرقم اللي وصلك عند تقديم الطلب</div>
+    <div class="hint">اكتب نفس رقم الهاتف الذي قدّمت به طلبك</div>
 
     <!-- بطاقة النتيجة -->
     <div class="result" id="result">
@@ -107,13 +110,16 @@
     <a class="back" href="volunteer.html">← تقديم طلب جديد</a>
   </div>
 
-  <footer>© فريق تعزيز التقدم التطوعي</footer>
+  <footer>
+    © فريق تعزيز التقدم التطوعي
+    <span class="dev-credit"><span class="spark">✦</span> تصميم وتطوير <b>عبدالله عبدالسلام</b></span>
+  </footer>
 </div>
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
   import { db, STATUS_COLLECTION } from "./firebase-config.js";
-  import { doc, getDoc }
+  import { collection, query, where, getDocs, limit }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
   const input    = document.getElementById("ticketInput");
@@ -129,34 +135,39 @@
     pending:  { cls:"r-pending",  ic:"🕐", title:"قيد المراجعة", desc:"طلبك وصل ويتم مراجعته حالياً. يرجى المتابعة لاحقاً." },
     accepted: { cls:"r-accepted", ic:"🎉", title:"تم القبول",     desc:"مبروك! تم قبول طلبك. سيتواصل معك الفريق عبر معلومة التواصل التي قدّمتها." },
     rejected: { cls:"r-rejected", ic:"✕",  title:"لم يتم القبول",  desc:"نعتذر، لم يتم قبول طلبك هذه المرة. نشكر لك اهتمامك." },
-    notfound: { cls:"r-notfound", ic:"🔎", title:"الرقم غير موجود", desc:"تأكد من رقم الطلب وحاول مرة أخرى." }
+    notfound: { cls:"r-notfound", ic:"🔎", title:"لا يوجد طلب بهذا الرقم", desc:"تأكد من رقم الهاتف وحاول مرة أخرى." }
   };
 
-  function showResult(key, ticket){
+  function showResult(key){
     const s = STATES[key];
     result.className = "result " + s.cls;
     resIc.textContent = s.ic;
     resTitle.textContent = s.title;
     resDesc.textContent = s.desc;
-    if(ticket){ resTicket.textContent = ticket; resTicket.style.display = "inline-block"; }
-    else resTicket.style.display = "none";
+    resTicket.style.display = "none";
     result.style.display = "block";
   }
 
   async function checkStatus(){
-    const ticket = input.value.trim().toUpperCase();
-    if(!ticket){ input.focus(); return; }
+    const phone = input.value.trim();
+    if(!phone){ input.focus(); return; }
 
     btn.classList.add("loading"); btn.disabled = true;
     result.style.display = "none";
 
     try{
-      const snap = await getDoc(doc(db, STATUS_COLLECTION, ticket));
-      if(!snap.exists()){
+      // البحث في مجموعة الحالات الآمنة (رقم الهاتف + الحالة فقط)
+      const q = query(
+        collection(db, STATUS_COLLECTION),
+        where("phone", "==", phone),
+        limit(1)
+      );
+      const snap = await getDocs(q);
+      if(snap.empty){
         showResult("notfound");
       }else{
-        const status = snap.data().status || "pending";
-        showResult(status, ticket);
+        const status = snap.docs[0].data().status || "pending";
+        showResult(status);
       }
     }catch(err){
       console.error(err);
@@ -170,9 +181,9 @@
   btn.addEventListener("click", checkStatus);
   input.addEventListener("keydown", e => { if(e.key === "Enter") checkStatus(); });
 
-  // لو فتح الرابط ومعه رقم جاهز: status.html?t=VLT-XXXX
+  // لو فتح الرابط ومعه رقم جاهز: status.html?t=07XXXXXXXXX
   const pre = new URLSearchParams(location.search).get("t");
-  if(pre){ input.value = pre.toUpperCase(); checkStatus(); }
+  if(pre){ input.value = pre; checkStatus(); }
 </script>
 </body>
 </html>
