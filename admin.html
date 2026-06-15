@@ -356,23 +356,25 @@
     });
   }
 
-  // ربط سجلات حضور الورشة القديمة بالمتقدّمين وإصلاح القبول (تلقائياً مرة واحدة)
-  let reconciled = false;
+  // ربط سجلات حضور الورشة بالمتقدّمين — يعمل في كل مرة، لكنه يربط كل سجل مرة واحدة
   async function reconcileWorkshop(){
-    if(reconciled) return;
     if(allRequests.length === 0 || wsAll.length === 0) return; // ننتظر تحميل الاثنين
-    reconciled = true;
     for(const w of wsAll){
-      if(w.applied) continue; // مربوط أصلاً
-      // ابحث عن متقدّم مطابق بالهاتف + الاسم (الذكي)
-      const match = allRequests.find(r => r.phone === w.phone && nameMatch(r.fullName, w.fullName));
-      if(match){
-        try{
-          await updateDoc(doc(db, WORKSHOP_COLLECTION, w.id), { applied:true, linkedTicket: match.ticket || "" });
+      // اربط فقط السجلات غير المربوطة (تجنّب تكرار الكتابة وعدم تجاوز التغييرات اليدوية)
+      if(w.applied && w.linkedTicket) continue;
+
+      const match = allRequests.find(r => normPhone(r.phone) === normPhone(w.phone) && nameMatch(r.fullName, w.fullName));
+      if(!match) continue;
+
+      try{
+        // علّم السجل أنه مقدّم عبر الرابط واربطه برقم الطلب
+        await updateDoc(doc(db, WORKSHOP_COLLECTION, w.id), { applied:true, linkedTicket: match.ticket || "" });
+        // حضور الورشة يعني القبول — اقبل المتقدّم إن لم يكن مقبولاً (عند الربط فقط)
+        if(match.status !== "accepted"){
           await updateDoc(doc(db, VOLUNTEERS_COLLECTION, match.id), { status: "accepted" });
           if(match.ticket) await setDoc(doc(db, STATUS_COLLECTION, match.ticket), { status:"accepted" }, { merge:true });
-        }catch(e){ /* تجاهل أي خطأ فردي */ }
-      }
+        }
+      }catch(e){ /* تجاهل أي خطأ فردي */ }
     }
   }
 
@@ -479,6 +481,13 @@
     if(!a || !b) return false;
     return a === b || a.startsWith(b + " ") || b.startsWith(a + " ");
   }
+  // توحيد رقم الهاتف: أرقام فقط، وتحويل 964 إلى 0
+  function normPhone(p){
+    let s = String(p||"").replace(/[^\d]/g,"");
+    if(s.startsWith("00964")) s = "0" + s.slice(5);
+    else if(s.startsWith("964")) s = "0" + s.slice(3);
+    return s;
+  }
 
   // ===== 7) تغيير الحالة (قبول/رفض) =====
   window.setStatus = async (id, status) => {
@@ -490,7 +499,7 @@
       // عند القبول: حدّث سجل حضور الورشة المطابق (إن وجد) حتى يظهر "مقدّم عبر الرابط"
       if(status === "accepted" && r){
         for(const w of wsAll){
-          if(w.phone === r.phone && nameMatch(w.fullName, r.fullName) && !w.applied){
+          if(normPhone(w.phone) === normPhone(r.phone) && nameMatch(w.fullName, r.fullName) && !w.applied){
             try{ await updateDoc(doc(db, WORKSHOP_COLLECTION, w.id), { applied:true, linkedTicket: r.ticket || "" }); }catch(e){}
           }
         }
