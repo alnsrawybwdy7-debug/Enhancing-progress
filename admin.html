@@ -470,7 +470,7 @@
 
   // توحيد الاسم العربي ومطابقته (يكفي الاسم الثلاثي، يتجاهل ه/ة و أ/ا)
   function normName(s){
-    return (s||"")
+    return toEnDigits(s)
       .replace(/[\u064B-\u0652\u0670]/g,"")
       .replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي")
       .replace(/ؤ/g,"و").replace(/ئ/g,"ي")
@@ -481,12 +481,40 @@
     if(!a || !b) return false;
     return a === b || a.startsWith(b + " ") || b.startsWith(a + " ");
   }
-  // توحيد رقم الهاتف: أرقام فقط، وتحويل 964 إلى 0
+  // تحويل الأرقام العربية (٠-٩) والفارسية إلى إنجليزية
+  function toEnDigits(s){
+    return String(s||"")
+      .replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660)
+      .replace(/[\u06F0-\u06F9]/g, d => d.charCodeAt(0) - 0x06F0);
+  }
+  // توحيد رقم الهاتف: أرقام إنجليزية فقط، وتحويل 964 إلى 0
   function normPhone(p){
-    let s = String(p||"").replace(/[^\d]/g,"");
+    let s = toEnDigits(p).replace(/[^\d]/g,"");
     if(s.startsWith("00964")) s = "0" + s.slice(5);
     else if(s.startsWith("964")) s = "0" + s.slice(3);
     return s;
+  }
+
+  // توحيد الصفة: خريجه/خريجة/حريج → خريج، طالبه → طالب، موظفه → موظف
+  function normalizeRole(x){
+    x = String(x||"").replace(/\s+/g," ").trim();
+    if(!x) return "";
+    if(/^(خريج|حريج|خريجه|خريجة|حريجه|حريجة)$/.test(x)) return "خريج";
+    if(x.startsWith("متخرج")) return "متخرج";
+    if(x.startsWith("طالب"))  return "طالب";
+    if(x.startsWith("موظف"))  return "موظف";
+    return x;
+  }
+  // استخراج {التخصص، الصفة}: للسجلات القديمة الصفة مدمجة بالتخصص بعد "/"
+  function splitRole(r){
+    let specialty = (r.specialty||"").trim();
+    let role = (r.role||"").trim();
+    if(!role && specialty.includes("/")){
+      const parts = specialty.split("/");
+      role = parts.pop().trim();
+      specialty = parts.join("/").trim();
+    }
+    return { specialty, role: normalizeRole(role) };
   }
 
   // ===== 7) تغيير الحالة (قبول/رفض) =====
@@ -622,17 +650,19 @@
 
     const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
 
-    wsListEl.innerHTML = filtered.map(r => `
+    wsListEl.innerHTML = filtered.map(r => {
+      const sr = splitRole(r);
+      return `
       <div class="req">
         <div class="r-top">
           <div>
             <div class="r-name">${esc(r.fullName)}</div>
-            <div class="r-gov">${esc(r.specialty||"")}${r.role ? " • " + esc(r.role) : ""}</div>
+            <div class="r-gov">${esc(sr.specialty||"")}${sr.role ? " • " + esc(sr.role) : ""}</div>
           </div>
           <span class="pill ${r.applied ? "applied-yes" : "applied-no"}">${r.applied ? "مقدّم عبر الرابط" : "غير مقدّم"}</span>
         </div>
         <div class="rows">
-          <div class="row"><span class="k">الصفة:</span><span class="v">${esc(r.role||"—")}</span></div>
+          <div class="row"><span class="k">الصفة:</span><span class="v">${esc(sr.role||"—")}</span></div>
           <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
           <div class="row"><span class="k">البطاقة الوطنية:</span><span class="v">${esc(r.nationalId||"")}</span></div>
           <div class="row"><span class="k">رسوم الاشتراك:</span><span class="v"><span class="pill ${r.paid ? "paid-yes":"paid-no"}">${r.paid ? "✓ دفع" : "✕ لم يدفع"}</span></span></div>
@@ -644,7 +674,8 @@
           <button class="b-del" style="flex:1;width:auto" onclick="removeWs('${r.id}','${esc(r.fullName)}')">🗑 حذف السجل</button>
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
   }
 
   // حذف سجل حضور ورشة (لتصحيح خطأ إدخال)
@@ -665,17 +696,20 @@
     // ترتيب أبجدي حسب الاسم
     const sorted = [...wsAll].sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
     const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","الصفة","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
-    const rows = sorted.map(r => ([
-      r.fullName || "",
-      r.phone || "",
-      r.nationalId || "",
-      r.specialty || "",
-      r.role || "",
-      r.paid ? "نعم" : "لا",
-      r.applied ? "نعم" : "لا",
-      r.linkedTicket || "",
-      fmt(r.createdAt)
-    ]));
+    const rows = sorted.map(r => {
+      const { specialty, role } = splitRole(r);
+      return [
+        r.fullName || "",
+        r.phone || "",
+        r.nationalId || "",
+        specialty,
+        role,
+        r.paid ? "نعم" : "لا",
+        r.applied ? "نعم" : "لا",
+        r.linkedTicket || "",
+        fmt(r.createdAt)
+      ];
+    });
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
     ws["!cols"] = [{wch:22},{wch:15},{wch:18},{wch:18},{wch:10},{wch:12},{wch:16},{wch:14},{wch:20}];
