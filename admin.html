@@ -349,10 +349,31 @@
       updateStats();
       render();
       backfillStatus(); // مزامنة التتبع برقم الهاتف للطلبات القديمة
+      reconcileWorkshop(); // ربط سجلات الورشة القديمة بالمتقدّمين
     }, (err) => {
       console.error(err);
       showToast("تعذّر جلب الطلبات", true);
     });
+  }
+
+  // ربط سجلات حضور الورشة القديمة بالمتقدّمين وإصلاح القبول (تلقائياً مرة واحدة)
+  let reconciled = false;
+  async function reconcileWorkshop(){
+    if(reconciled) return;
+    if(allRequests.length === 0 || wsAll.length === 0) return; // ننتظر تحميل الاثنين
+    reconciled = true;
+    for(const w of wsAll){
+      if(w.applied) continue; // مربوط أصلاً
+      // ابحث عن متقدّم مطابق بالهاتف + الاسم (الذكي)
+      const match = allRequests.find(r => r.phone === w.phone && nameMatch(r.fullName, w.fullName));
+      if(match){
+        try{
+          await updateDoc(doc(db, WORKSHOP_COLLECTION, w.id), { applied:true, linkedTicket: match.ticket || "" });
+          await updateDoc(doc(db, VOLUNTEERS_COLLECTION, match.id), { status: "accepted" });
+          if(match.ticket) await setDoc(doc(db, STATUS_COLLECTION, match.ticket), { status:"accepted" }, { merge:true });
+        }catch(e){ /* تجاهل أي خطأ فردي */ }
+      }
+    }
   }
 
   // نقل (رقم الهاتف + الحالة) لمجموعة التتبع الآمنة — تلقائياً مرة واحدة
@@ -445,6 +466,20 @@
   function esc(s){ return String(s??"").replace(/[&<>"']/g, c =>
     ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
+  // توحيد الاسم العربي ومطابقته (يكفي الاسم الثلاثي، يتجاهل ه/ة و أ/ا)
+  function normName(s){
+    return (s||"")
+      .replace(/[\u064B-\u0652\u0670]/g,"")
+      .replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي")
+      .replace(/ؤ/g,"و").replace(/ئ/g,"ي")
+      .replace(/\s+/g," ").trim().toLowerCase();
+  }
+  function nameMatch(a, b){
+    a = normName(a); b = normName(b);
+    if(!a || !b) return false;
+    return a === b || a.startsWith(b + " ") || b.startsWith(a + " ");
+  }
+
   // ===== 7) تغيير الحالة (قبول/رفض) =====
   window.setStatus = async (id, status) => {
     const r = allRequests.find(x => x.id === id);
@@ -452,6 +487,14 @@
       await updateDoc(doc(db, VOLUNTEERS_COLLECTION, id), { status });
       // تحديث نسخة التتبع أيضاً حتى يشوفها المستخدم
       if(r?.ticket) await setDoc(doc(db, STATUS_COLLECTION, r.ticket), { status }, { merge:true });
+      // عند القبول: حدّث سجل حضور الورشة المطابق (إن وجد) حتى يظهر "مقدّم عبر الرابط"
+      if(status === "accepted" && r){
+        for(const w of wsAll){
+          if(w.phone === r.phone && nameMatch(w.fullName, r.fullName) && !w.applied){
+            try{ await updateDoc(doc(db, WORKSHOP_COLLECTION, w.id), { applied:true, linkedTicket: r.ticket || "" }); }catch(e){}
+          }
+        }
+      }
       showToast(status==="accepted" ? "تم قبول الطلب ✓" : "تم رفض الطلب");
     }catch(err){ console.error(err); showToast("تعذّر تحديث الحالة", true); }
   };
@@ -481,6 +524,8 @@
       seen.add(key);
       unique.push(r);
     }
+    // ترتيب أبجدي حسب الاسم
+    unique.sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
 
     const labels = { pending:"قيد المراجعة", accepted:"مقبول", rejected:"مرفوض" };
 
@@ -533,6 +578,7 @@
       wsAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       updateWsStats();
       renderWs();
+      reconcileWorkshop(); // ربط السجلات القديمة عند توفر الطرفين
     }, (err) => { console.error(err); });
   }
 
@@ -572,11 +618,12 @@
         <div class="r-top">
           <div>
             <div class="r-name">${esc(r.fullName)}</div>
-            <div class="r-gov">${esc(r.specialty||"")}</div>
+            <div class="r-gov">${esc(r.specialty||"")}${r.role ? " • " + esc(r.role) : ""}</div>
           </div>
           <span class="pill ${r.applied ? "applied-yes" : "applied-no"}">${r.applied ? "مقدّم عبر الرابط" : "غير مقدّم"}</span>
         </div>
         <div class="rows">
+          <div class="row"><span class="k">الصفة:</span><span class="v">${esc(r.role||"—")}</span></div>
           <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
           <div class="row"><span class="k">البطاقة الوطنية:</span><span class="v">${esc(r.nationalId||"")}</span></div>
           <div class="row"><span class="k">رسوم الاشتراك:</span><span class="v"><span class="pill ${r.paid ? "paid-yes":"paid-no"}">${r.paid ? "✓ دفع" : "✕ لم يدفع"}</span></span></div>
@@ -606,12 +653,15 @@
     if(wsAll.length === 0){ showToast("لا يوجد حاضرون للتصدير", true); return; }
 
     const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
-    const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
-    const rows = wsAll.map(r => ([
+    // ترتيب أبجدي حسب الاسم
+    const sorted = [...wsAll].sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","الصفة","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
+    const rows = sorted.map(r => ([
       r.fullName || "",
       r.phone || "",
       r.nationalId || "",
       r.specialty || "",
+      r.role || "",
       r.paid ? "نعم" : "لا",
       r.applied ? "نعم" : "لا",
       r.linkedTicket || "",
@@ -619,7 +669,7 @@
     ]));
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-    ws["!cols"] = [{wch:22},{wch:15},{wch:18},{wch:18},{wch:12},{wch:16},{wch:14},{wch:20}];
+    ws["!cols"] = [{wch:22},{wch:15},{wch:18},{wch:18},{wch:10},{wch:12},{wch:16},{wch:14},{wch:20}];
     const wb = XLSX.utils.book_new();
     wb.Workbook = { Views: [{ RTL: true }] };
     XLSX.utils.book_append_sheet(wb, ws, "حضور الورشة");
