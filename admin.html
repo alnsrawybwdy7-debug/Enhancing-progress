@@ -58,6 +58,21 @@
     background:linear-gradient(135deg,var(--pine),var(--leaf));border:none;border-radius:11px;padding:10px 18px;cursor:pointer;transition:.2s}
   .export-btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
   .export-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .export-group{display:flex;gap:8px;flex-wrap:wrap}
+  .export-gov{background:linear-gradient(135deg,#5A4AA8,#7A6AC8)}
+  /* نافذة اختيار الجنس */
+  .modal-overlay{position:fixed;inset:0;z-index:80;background:rgba(22,63,51,.5);display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal-box{background:#fff;border-radius:22px;box-shadow:var(--shadow);max-width:380px;width:100%;padding:32px 28px;text-align:center;animation:rise .3s ease both}
+  .modal-box h3{font-family:"Reem Kufi",sans-serif;font-size:1.25rem;color:var(--pine);margin-bottom:8px}
+  .modal-box p{color:var(--muted);font-size:.9rem;margin-bottom:22px}
+  .modal-choices{display:flex;gap:12px}
+  .modal-choice{flex:1;font-family:inherit;font-weight:600;font-size:1rem;border-radius:14px;padding:18px 12px;cursor:pointer;transition:.2s;border:2px solid var(--line);background:var(--cream)}
+  .modal-choice .mc-ic{font-size:1.8rem;display:block;margin-bottom:6px}
+  .modal-choice.girls:hover{border-color:#D4537E;background:#FBEAF0;color:#993556}
+  .modal-choice.boys:hover{border-color:#378ADD;background:#E6F1FB;color:#185FA5}
+  .modal-cancel{margin-top:16px;font-family:inherit;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;font-size:.9rem}
+  .modal-cancel:hover{color:var(--clay)}
   .ws-link{display:flex;align-items:center;gap:7px;font-family:inherit;font-weight:600;font-size:.9rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:10px 16px;cursor:pointer;text-decoration:none;transition:.2s}
   .ws-link:hover{background:var(--cream-2)}
   /* تبويبات */
@@ -193,7 +208,10 @@
   <section id="sec-applicants">
     <div class="sec-head">
       <h2 class="sec-title">طلبات الانضمام</h2>
-      <button class="export-btn" id="exportBtn">📊 تصدير Excel</button>
+      <div class="export-group">
+        <button class="export-btn" id="exportBtn">📊 تصدير Excel</button>
+        <button class="export-btn export-gov" id="exportGovBtn">🏛 تصدير للمحافظة</button>
+      </div>
     </div>
 
     <div class="stats">
@@ -220,7 +238,10 @@
   <section id="sec-workshop" style="display:none">
     <div class="sec-head">
       <h2 class="sec-title">حضور الورشة</h2>
-      <button class="export-btn" id="exportWsBtn">📊 تصدير Excel</button>
+      <div class="export-group">
+        <button class="export-btn" id="exportWsBtn">📊 تصدير Excel</button>
+        <button class="export-btn export-gov" id="exportWsGovBtn">🏛 تصدير للمحافظة</button>
+      </div>
     </div>
 
     <div class="stats">
@@ -240,6 +261,19 @@
   <footer class="app-footer">
     © فريق تعزيز التقدم التطوعي
   </footer>
+</div>
+
+<!-- نافذة اختيار الجنس للتصدير للمحافظة -->
+<div class="modal-overlay" id="genderModal">
+  <div class="modal-box">
+    <h3>تصدير للمحافظة</h3>
+    <p>اختر الفئة التي تريد تصديرها في ملف منفصل</p>
+    <div class="modal-choices">
+      <button class="modal-choice girls" id="chooseGirls"><span class="mc-ic">👧</span> بنات</button>
+      <button class="modal-choice boys" id="chooseBoys"><span class="mc-ic">👦</span> ولد</button>
+    </div>
+    <button class="modal-cancel" id="cancelGender">إلغاء</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"><span id="toastTxt"></span></div>
@@ -517,6 +551,21 @@
     return { specialty, role: normalizeRole(role) };
   }
 
+  // ===== تحديد الجنس من الاسم الأول (قاموس أسماء عربية شائعة) =====
+  const FEMALE_NAMES = new Set("إيمان ايمان اسراء إسراء انوار أنوار ايات آيات ايناس إيناس بسمه بسمة بنين حنين حوراء داليه داليا دعاء رقيه رقية زهراء زينب سجى شهد شهلاء طيبه طيبة غسق فاطمه فاطمة فضاء فواطم كوثر ليلى ليلئ مروه مروة مريم نبأ نور نورالهدى هدى هديل هنده هند زهره زهرة رؤى رواء رنا رغد رسل ريم سحر سرى سما سمر شمس صفا ضحى عذراء غفران فرح فدك لمى لينا مايا منار منى مها ميس نرجس نغم هبه هبة هيام ود وعد ولاء ام أمنه آمنه امنة بتول جنى جومانه حلا حياه حياة خوله دانيه دينا رزان زهرا ساره سارة سدره سديم سلوى شذى شيماء عبير علا غاده فاتن قمر كرز لجين مرام مزن ملاك نهى نوال هاجر هناء ياسمين رحمه رحمة رحاب رنيم زبيده سندس عسل غيداء فيروز نسرين نوف ضی هیا تقى تبارك زمزم رفل شفاء صبا عفاف لطيفه مادونا ميرنا نادين هنادي وفاء ابرار أبرار ارجوان اشواق الاء آلاء انغام بشرى بلسم تالا تيماء جواهر حوران دارين ديانا رهف زهور سيرين شمم صفاء طوبى عطور غصون فجر كوكب لارا لميس مريانا ملك منه منة نبراس نجاه نجلاء هلا".split(/\s+/));
+  const MALE_NAMES = new Set("احمد أحمد حبيب حسن حسين حسنين حيدر ديار سجاد عبدالرضا عبدالله علي فرقان قاسم كاظم مجتبى محمد مرتضى مصطفى مقتدى مهدي ابراهيم إبراهيم اكرم امير أمير انور باقر بكر بشار بلال تقي تيم جابر جاسم جعفر جلال جمال جواد حازم حامد حمزه حمزة حمود خالد ذوالفقار رضا رعد زيد زين زيدان سعد سعيد سلام سلمان سيف شاكر صادق صباح صفاء ضرغام طارق طلال طه ظافر عادل عامر عباس عبد عبدالكريم عبدالمهدي عبدالحسن عثمان عقيل عقبه عدنان عز عزيز عقيل علاء عمار عمر عيسى غيث فادي فاضل فهد فؤاد قصي كرار كميل ليث مالك ماجد محسن محمود مازن مازر مرتجى مسلم مشتاق مصعب معتز منتظر منذر مكي موسى ميثم نبيل نزار نور نوري هادي هاشم هيثم وائل وليد وسام يوسف يعقوب يحيى ياسر يونس امجد اوس باسم بهاء جهاد حارث حيدره خضير رامي رسول زاهر زهير سراج سند شهاب صلاح ضياء عبدالوهاب علوان غانم فالح كرم لؤي مؤمل محيي مرشد مصدق منير نعمان همام وقاص ياسين").split(/\s+/).filter(Boolean);
+  const MALE_SET = new Set(MALE_NAMES);
+
+  function detectGender(fullName){
+    const first = normName(fullName).split(" ")[0] || "";
+    const firstRaw = String(fullName||"").trim().split(/\s+/)[0] || "";
+    // قارن بالاسم كما هو وبعد التوحيد
+    if(FEMALE_NAMES.has(firstRaw) || FEMALE_NAMES.has(first)) return "female";
+    if(MALE_SET.has(firstRaw) || MALE_SET.has(first)) return "male";
+    // أسماء تنتهي بهاء التأنيث غالباً بنات (احتياط أخير)
+    return "unknown";
+  }
+
   // ===== 7) تغيير الحالة (قبول/رفض) =====
   window.setStatus = async (id, status) => {
     const r = allRequests.find(x => x.id === id);
@@ -720,6 +769,91 @@
     XLSX.writeFile(wb, `workshop-attendance-${today}.xlsx`);
     showToast(`تم تصدير ${wsAll.length} حاضر ✓`);
   });
+
+  // ===== 13) التصدير للمحافظة (ملف منفصل للبنات/الولد، 5 أعمدة فقط) =====
+  let govSource = null; // "applicants" | "workshop"
+  const genderModal = document.getElementById("genderModal");
+
+  function openGenderModal(source){
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    const data = source === "applicants" ? allRequests : wsAll;
+    if(!data || data.length === 0){ showToast("لا توجد بيانات للتصدير", true); return; }
+    govSource = source;
+    genderModal.classList.add("show");
+  }
+
+  function closeGenderModal(){ genderModal.classList.remove("show"); govSource = null; }
+
+  document.getElementById("exportGovBtn").addEventListener("click", () => openGenderModal("applicants"));
+  document.getElementById("exportWsGovBtn").addEventListener("click", () => openGenderModal("workshop"));
+  document.getElementById("cancelGender").addEventListener("click", closeGenderModal);
+  genderModal.addEventListener("click", (e) => { if(e.target === genderModal) closeGenderModal(); });
+  document.getElementById("chooseGirls").addEventListener("click", () => runGovExport("female"));
+  document.getElementById("chooseBoys").addEventListener("click", () => runGovExport("male"));
+
+  function runGovExport(gender){
+    const source = govSource;
+    closeGenderModal();
+
+    // تجهيز السجلات (المتقدّمون: إزالة المكرر؛ الورشة: الكل)
+    let records;
+    if(source === "applicants"){
+      const seen = new Set(); records = [];
+      for(const r of allRequests){
+        const key = (r.fullName||"").trim().toLowerCase() + "||" + normPhone(r.phone);
+        if(seen.has(key)) continue; seen.add(key); records.push(r);
+      }
+    }else{
+      records = [...wsAll];
+    }
+
+    // الفصل حسب الجنس + جمع غير المصنّفين
+    const picked = [], unknown = [];
+    for(const r of records){
+      const g = detectGender(r.fullName);
+      if(g === gender) picked.push(r);
+      else if(g === "unknown") unknown.push((r.fullName||"").trim());
+    }
+
+    if(picked.length === 0 && unknown.length === 0){
+      showToast(gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات", true);
+      return;
+    }
+
+    // ترتيب أبجدي
+    picked.sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+
+    // 5 أعمدة فقط: الهاتف، الاسم، البطاقة الوطنية، الصفة، التخصص
+    const header = ["رقم الهاتف","الاسم الكامل","رقم البطاقة الوطنية","الصفة","التخصص"];
+    const rows = picked.map(r => {
+      const { specialty, role } = splitRole(r);
+      // المتقدّمون كلهم خريجون (شرط التقديم)، وما عندهم رقم بطاقة (صور فقط)
+      const sifa = source === "workshop" ? role : (role || "متخرج");
+      const natId = source === "workshop" ? (r.nationalId || "") : (r.nationalId || "");
+      return [ r.phone || "", r.fullName || "", natId, sifa, specialty ];
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:15},{wch:24},{wch:18},{wch:12},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
+    const sheetName = gender==="female" ? "بنات" : "ولد";
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+    const today = new Date().toISOString().slice(0,10);
+    const srcName = source === "applicants" ? "applicants" : "workshop";
+    const genName = gender==="female" ? "girls" : "boys";
+    XLSX.writeFile(wb, `${srcName}-${genName}-${today}.xlsx`);
+
+    let msg = `تم تصدير ${picked.length} ${gender==="female"?"بنت":"ولد"} ✓`;
+    if(unknown.length){
+      msg += ` — ${unknown.length} اسم غير مصنّف`;
+      setTimeout(() => {
+        alert("⚠️ أسماء لم يتعرّف عليها النظام (غير مضمّنة بالملف، صنّفها يدوياً):\n\n• " + unknown.join("\n• "));
+      }, 400);
+    }
+    showToast(msg);
+  }
 </script>
 </body>
 </html>
