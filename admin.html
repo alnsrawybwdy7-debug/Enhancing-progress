@@ -63,6 +63,9 @@
   /* نافذة اختيار الجنس */
   .modal-overlay{position:fixed;inset:0;z-index:80;background:rgba(22,63,51,.5);display:none;align-items:center;justify-content:center;padding:20px}
   .modal-overlay.show{display:flex}
+  .edit-lbl{display:block;font-weight:600;font-size:.88rem;color:var(--ink);margin:12px 0 6px}
+  .edit-inp{width:100%;font-family:inherit;font-size:1rem;color:var(--ink);background:var(--cream);border:1.5px solid var(--line);border-radius:11px;padding:11px 13px;transition:.2s}
+  .edit-inp:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
   .modal-box{background:#fff;border-radius:22px;box-shadow:var(--shadow);max-width:380px;width:100%;padding:32px 28px;text-align:center;animation:rise .3s ease both}
   .modal-box h3{font-family:"Reem Kufi",sans-serif;font-size:1.25rem;color:var(--pine);margin-bottom:8px}
   .modal-box p{color:var(--muted);font-size:.9rem;margin-bottom:22px}
@@ -273,6 +276,38 @@
       <button class="modal-choice boys" id="chooseBoys"><span class="mc-ic">👦</span> ولد</button>
     </div>
     <button class="modal-cancel" id="cancelGender">إلغاء</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box" style="text-align:right;max-width:440px">
+    <h3 style="text-align:center">تعديل بيانات الحاضر</h3>
+    <div style="margin-top:6px">
+      <label class="edit-lbl">الاسم الكامل</label>
+      <input type="text" id="editName" class="edit-inp">
+      <label class="edit-lbl">رقم الهاتف</label>
+      <input type="tel" id="editPhone" class="edit-inp" inputmode="numeric">
+      <label class="edit-lbl">رقم البطاقة الوطنية</label>
+      <input type="text" id="editNatId" class="edit-inp">
+      <label class="edit-lbl">التخصص</label>
+      <input type="text" id="editSpecialty" class="edit-inp">
+      <label class="edit-lbl">الصفة</label>
+      <select id="editRole" class="edit-inp">
+        <option value="">— غير محدد —</option>
+        <option value="طالب">طالب</option>
+        <option value="متخرج">متخرج</option>
+        <option value="موظف">موظف</option>
+      </select>
+      <label class="edit-lbl">دفع الرسوم</label>
+      <select id="editPaid" class="edit-inp">
+        <option value="yes">نعم، دفع</option>
+        <option value="no">لم يدفع</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="b-acc" style="flex:1" id="saveEdit">💾 حفظ التعديلات</button>
+      <button class="modal-cancel" style="flex:1;margin:0" id="cancelEdit">إلغاء</button>
+    </div>
   </div>
 </div>
 
@@ -552,8 +587,8 @@
   }
 
   // ===== تحديد الجنس من الاسم الأول (قاموس أسماء عربية شائعة) =====
-  const FEMALE_NAMES = new Set("إيمان ايمان اسراء إسراء انوار أنوار ايات آيات ايناس إيناس بسمه بسمة بنين حنين حوراء داليه داليا دعاء رقيه رقية زهراء زينب سجى شهد شهلاء طيبه طيبة غسق فاطمه فاطمة فضاء فواطم كوثر ليلى ليلئ مروه مروة مريم نبأ نور نورالهدى هدى هديل هنده هند زهره زهرة رؤى رواء رنا رغد رسل ريم سحر سرى سما سمر شمس صفا ضحى عذراء غفران فرح فدك لمى لينا مايا منار منى مها ميس نرجس نغم هبه هبة هيام ود وعد ولاء ام أمنه آمنه امنة بتول جنى جومانه حلا حياه حياة خوله دانيه دينا رزان زهرا ساره سارة سدره سديم سلوى شذى شيماء عبير علا غاده فاتن قمر كرز لجين مرام مزن ملاك نهى نوال هاجر هناء ياسمين رحمه رحمة رحاب رنيم زبيده سندس عسل غيداء فيروز نسرين نوف ضی هیا تقى تبارك زمزم رفل شفاء صبا عفاف لطيفه مادونا ميرنا نادين هنادي وفاء ابرار أبرار ارجوان اشواق الاء آلاء انغام بشرى بلسم تالا تيماء جواهر حوران دارين ديانا رهف زهور سيرين شمم صفاء طوبى عطور غصون فجر كوكب لارا لميس مريانا ملك منه منة نبراس نجاه نجلاء هلا".split(/\s+/));
-  const MALE_NAMES = ("احمد أحمد حبيب حسن حسين حسنين حيدر ديار سجاد عبدالرضا عبدالله علي فرقان قاسم كاظم مجتبى محمد مرتضى مصطفى مقتدى مهدي ابراهيم إبراهيم اكرم امير أمير انور باقر بكر بشار بلال تقي تيم جابر جاسم جعفر جلال جمال جواد حازم حامد حمزه حمزة حمود خالد ذوالفقار رضا رعد زيد زين زيدان سعد سعيد سلام سلمان سيف شاكر صادق صباح صفاء ضرغام طارق طلال طه ظافر عادل عامر عباس عبد عبدالكريم عبدالمهدي عبدالحسن عثمان عقيل عقبه عدنان عز عزيز عقيل علاء عمار عمر عيسى غيث فادي فاضل فهد فؤاد قصي كرار كميل ليث مالك ماجد محسن محمود مازن مازر مرتجى مسلم مشتاق مصعب معتز منتظر منذر مكي موسى ميثم نبيل نزار نور نوري هادي هاشم هيثم وائل وليد وسام يوسف يعقوب يحيى ياسر يونس امجد اوس باسم بهاء جهاد حارث حيدره خضير رامي رسول زاهر زهير سراج سند شهاب صلاح ضياء عبدالوهاب علوان غانم فالح كرم لؤي مؤمل محيي مرشد مصدق منير نعمان همام وقاص ياسين").split(/\s+/).filter(Boolean);
+  const FEMALE_NAMES = new Set("ديار فرقان إيمان ايمان اسراء إسراء انوار أنوار ايات آيات ايناس إيناس بسمه بسمة بنين حنين حوراء داليه داليا دعاء رقيه رقية زهراء زينب سجى شهد شهلاء طيبه طيبة غسق فاطمه فاطمة فضاء فواطم كوثر ليلى ليلئ مروه مروة مريم نبأ نور نورالهدى هدى هديل هنده هند زهره زهرة رؤى رواء رنا رغد رسل ريم سحر سرى سما سمر شمس صفا ضحى عذراء غفران فرح فدك لمى لينا مايا منار منى مها ميس نرجس نغم هبه هبة هيام ود وعد ولاء ام أمنه آمنه امنة بتول جنى جومانه حلا حياه حياة خوله دانيه دينا رزان زهرا ساره سارة سدره سديم سلوى شذى شيماء عبير علا غاده فاتن قمر كرز لجين مرام مزن ملاك نهى نوال هاجر هناء ياسمين رحمه رحمة رحاب رنيم زبيده سندس عسل غيداء فيروز نسرين نوف ضی هیا تقى تبارك زمزم رفل شفاء صبا عفاف لطيفه مادونا ميرنا نادين هنادي وفاء ابرار أبرار ارجوان اشواق الاء آلاء انغام بشرى بلسم تالا تيماء جواهر حوران دارين ديانا رهف زهور سيرين شمم صفاء طوبى عطور غصون فجر كوكب لارا لميس مريانا ملك منه منة نبراس نجاه نجلاء هلا".split(/\s+/));
+  const MALE_NAMES = ("احمد أحمد حبيب حسن حسين حسنين حيدر سجاد عبدالرضا عبدالله علي قاسم كاظم مجتبى محمد مرتضى مصطفى مقتدى مهدي ابراهيم إبراهيم اكرم امير أمير انور باقر بكر بشار بلال تقي تيم جابر جاسم جعفر جلال جمال جواد حازم حامد حمزه حمزة حمود خالد ذوالفقار رضا رعد زيد زين زيدان سعد سعيد سلام سلمان سيف شاكر صادق صباح صفاء ضرغام طارق طلال طه ظافر عادل عامر عباس عبد عبدالكريم عبدالمهدي عبدالحسن عثمان عقيل عقبه عدنان عز عزيز عقيل علاء عمار عمر عيسى غيث فادي فاضل فهد فؤاد قصي كرار كميل ليث مالك ماجد محسن محمود مازن مازر مرتجى مسلم مشتاق مصعب معتز منتظر منذر مكي موسى ميثم نبيل نزار نور نوري هادي هاشم هيثم وائل وليد وسام يوسف يعقوب يحيى ياسر يونس امجد اوس باسم بهاء جهاد حارث حيدره خضير رامي رسول زاهر زهير سراج سند شهاب صلاح ضياء عبدالوهاب علوان غانم فالح كرم لؤي مؤمل محيي مرشد مصدق منير نعمان همام وقاص ياسين").split(/\s+/).filter(Boolean);
   const MALE_SET = new Set(MALE_NAMES);
 
   function detectGender(fullName){
@@ -565,6 +600,10 @@
     // أسماء تنتهي بهاء التأنيث غالباً بنات (احتياط أخير)
     return "unknown";
   }
+
+  // الطبيب المشرف على الورشة — يُثبّت بأول صف في ملفات حضور الورشة (بنات وولد)
+  const SUPERVISOR_NAME = "تبارك محمد عجمي";
+  function isSupervisor(r){ return nameMatch(r && r.fullName, SUPERVISOR_NAME); }
 
   // ===== 7) تغيير الحالة (قبول/رفض) =====
   window.setStatus = async (id, status) => {
@@ -720,6 +759,7 @@
           ${!r.applied ? `<div class="ws-alert">⚠️ هذا الشخص غير مقدّم عبر رابط الانضمام</div>` : ``}
         </div>
         <div class="actions">
+          <button class="b-acc" style="flex:1;width:auto" onclick="openEditWs('${r.id}')">✏️ تعديل</button>
           <button class="b-del" style="flex:1;width:auto" onclick="removeWs('${r.id}','${esc(r.fullName)}')">🗑 حذف السجل</button>
         </div>
       </div>
@@ -736,14 +776,53 @@
     }catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
   };
 
+  // ===== تعديل بيانات حاضر الورشة =====
+  let editWsId = null;
+  const editModal = document.getElementById("editModal");
+
+  window.openEditWs = (id) => {
+    const r = wsAll.find(x => x.id === id);
+    if(!r){ showToast("تعذّر إيجاد السجل", true); return; }
+    editWsId = id;
+    document.getElementById("editName").value      = r.fullName || "";
+    document.getElementById("editPhone").value     = r.phone || "";
+    document.getElementById("editNatId").value     = r.nationalId || "";
+    document.getElementById("editSpecialty").value = r.specialty || "";
+    document.getElementById("editRole").value      = r.role || "";
+    document.getElementById("editPaid").value      = r.paid ? "yes" : "no";
+    editModal.classList.add("show");
+  };
+
+  function closeEditModal(){ editModal.classList.remove("show"); editWsId = null; }
+  document.getElementById("cancelEdit").addEventListener("click", closeEditModal);
+  editModal.addEventListener("click", (e) => { if(e.target === editModal) closeEditModal(); });
+
+  document.getElementById("saveEdit").addEventListener("click", async () => {
+    if(!editWsId) return;
+    const fullName   = document.getElementById("editName").value.trim();
+    const phone      = document.getElementById("editPhone").value.trim();
+    const nationalId = document.getElementById("editNatId").value.trim();
+    const specialty  = document.getElementById("editSpecialty").value.trim();
+    const role       = document.getElementById("editRole").value;
+    const paid       = document.getElementById("editPaid").value === "yes";
+    if(!fullName || !phone){ showToast("الاسم ورقم الهاتف مطلوبان", true); return; }
+    try{
+      await updateDoc(doc(db, WORKSHOP_COLLECTION, editWsId), { fullName, phone, nationalId, specialty, role, paid });
+      showToast("تم حفظ التعديلات ✓");
+      closeEditModal();
+    }catch(err){ console.error(err); showToast("تعذّر حفظ التعديلات", true); }
+  });
+
   // ===== 12) تصدير حضور الورشة =====
   document.getElementById("exportWsBtn").addEventListener("click", () => {
     if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
     if(wsAll.length === 0){ showToast("لا يوجد حاضرون للتصدير", true); return; }
 
     const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
-    // ترتيب أبجدي حسب الاسم
-    const sorted = [...wsAll].sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    // ترتيب أبجدي حسب الاسم، مع تثبيت الطبيب المشرف بأول صف
+    const sup0 = wsAll.filter(isSupervisor);
+    const rest0 = wsAll.filter(r => !isSupervisor(r)).sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    const sorted = [...sup0, ...rest0];
     const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","الصفة","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
     const rows = sorted.map(r => {
       const { specialty, role } = splitRole(r);
@@ -807,21 +886,28 @@
       records = [...wsAll];
     }
 
-    // الفصل حسب الجنس + جمع غير المصنّفين
+    // الفصل حسب الجنس + جمع غير المصنّفين (المشرف يُستثنى ليُثبّت بالأعلى لاحقاً)
     const picked = [], unknown = [];
     for(const r of records){
+      if(source === "workshop" && isSupervisor(r)) continue; // نضيفه أول صف بعدين
       const g = detectGender(r.fullName);
       if(g === gender) picked.push(r);
       else if(g === "unknown") unknown.push((r.fullName||"").trim());
+    }
+
+    // ترتيب أبجدي
+    picked.sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+
+    // تثبيت الطبيب المشرف بأول صف في ملفي البنات والولد (لتصدير الورشة فقط)
+    if(source === "workshop"){
+      const sup = wsAll.find(isSupervisor);
+      if(sup) picked.unshift(sup);
     }
 
     if(picked.length === 0 && unknown.length === 0){
       showToast(gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات", true);
       return;
     }
-
-    // ترتيب أبجدي
-    picked.sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
 
     // 5 أعمدة فقط: الهاتف، الاسم، البطاقة الوطنية، الصفة، التخصص
     const header = ["رقم الهاتف","الاسم الكامل","رقم البطاقة الوطنية","الصفة","التخصص"];
