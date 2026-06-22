@@ -591,13 +591,14 @@
   const MALE_NAMES = ("احمد أحمد حبيب حسن حسين حسنين حيدر سجاد عبدالرضا عبدالله علي قاسم كاظم مجتبى محمد مرتضى مصطفى مقتدى مهدي ابراهيم إبراهيم اكرم امير أمير انور باقر بكر بشار بلال تقي تيم جابر جاسم جعفر جلال جمال جواد حازم حامد حمزه حمزة حمود خالد ذوالفقار رضا رعد زيد زين زيدان سعد سعيد سلام سلمان سيف شاكر صادق صباح صفاء ضرغام طارق طلال طه ظافر عادل عامر عباس عبد عبدالكريم عبدالمهدي عبدالحسن عثمان عقيل عقبه عدنان عز عزيز عقيل علاء عمار عمر عيسى غيث فادي فاضل فهد فؤاد قصي كرار كميل ليث مالك ماجد محسن محمود مازن مازر مرتجى مسلم مشتاق مصعب معتز منتظر منذر مكي موسى ميثم نبيل نزار نور نوري هادي هاشم هيثم وائل وليد وسام يوسف يعقوب يحيى ياسر يونس امجد اوس باسم بهاء جهاد حارث حيدره خضير رامي رسول زاهر زهير سراج سند شهاب صلاح ضياء عبدالوهاب علوان غانم فالح كرم لؤي مؤمل محيي مرشد مصدق منير نعمان همام وقاص ياسين").split(/\s+/).filter(Boolean);
   const MALE_SET = new Set(MALE_NAMES);
 
+  // تصنيف يدوي للأسماء غير المعروفة (يدوم خلال الجلسة ويُطبّق على ملفي البنات والولد)
+  const manualGender = new Map(); // الاسم الأول الموحّد → "female" | "male"
   function detectGender(fullName){
     const first = normName(fullName).split(" ")[0] || "";
+    if(manualGender.has(first)) return manualGender.get(first);
     const firstRaw = String(fullName||"").trim().split(/\s+/)[0] || "";
-    // قارن بالاسم كما هو وبعد التوحيد
     if(FEMALE_NAMES.has(firstRaw) || FEMALE_NAMES.has(first)) return "female";
     if(MALE_SET.has(firstRaw) || MALE_SET.has(first)) return "male";
-    // أسماء تنتهي بهاء التأنيث غالباً بنات (احتياط أخير)
     return "unknown";
   }
 
@@ -886,14 +887,18 @@
       records = [...wsAll];
     }
 
-    // الفصل حسب الجنس + جمع غير المصنّفين (المشرف يُستثنى ليُثبّت بالأعلى لاحقاً)
-    const picked = [], unknown = [];
-    for(const r of records){
-      if(source === "workshop" && isSupervisor(r)) continue; // نضيفه أول صف بعدين
-      const g = detectGender(r.fullName);
-      if(g === gender) picked.push(r);
-      else if(g === "unknown") unknown.push((r.fullName||"").trim());
+    // استثنِ المشرف (يُثبّت بالأعلى)، واسأل المستخدم عن أي اسم غير معروف الجنس
+    const pool = records.filter(r => !(source === "workshop" && isSupervisor(r)));
+    for(const r of pool){
+      const first = normName(r.fullName).split(" ")[0] || "";
+      if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
+        const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
+        manualGender.set(first, isGirl ? "female" : "male");
+      }
     }
+
+    // الفصل حسب الجنس (كل الأسماء صارت مصنّفة الآن)
+    const picked = pool.filter(r => detectGender(r.fullName) === gender);
 
     // ترتيب أبجدي
     picked.sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
@@ -904,7 +909,7 @@
       if(sup) picked.unshift(sup);
     }
 
-    if(picked.length === 0 && unknown.length === 0){
+    if(picked.length === 0){
       showToast(gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات", true);
       return;
     }
@@ -931,14 +936,7 @@
     const genName = gender==="female" ? "girls" : "boys";
     XLSX.writeFile(wb, `${srcName}-${genName}-${today}.xlsx`);
 
-    let msg = `تم تصدير ${picked.length} ${gender==="female"?"بنت":"ولد"} ✓`;
-    if(unknown.length){
-      msg += ` — ${unknown.length} اسم غير مصنّف`;
-      setTimeout(() => {
-        alert("⚠️ أسماء لم يتعرّف عليها النظام (غير مضمّنة بالملف، صنّفها يدوياً):\n\n• " + unknown.join("\n• "));
-      }, 400);
-    }
-    showToast(msg);
+    showToast(`تم تصدير ${picked.length} ${gender==="female"?"بنت":"ولد"} ✓`);
   }
 </script>
 </body>
