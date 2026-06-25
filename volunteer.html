@@ -189,13 +189,6 @@
   .again:hover{background:var(--line)}
 
   footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.85rem}
-
-  .lock-screen{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:clamp(34px,6vw,52px) clamp(22px,5vw,40px);text-align:center;animation:rise .5s ease both}
-  .lock-screen .lock-ic{font-size:2.6rem;margin-bottom:14px}
-  .lock-screen h2{font-family:"Reem Kufi",sans-serif;font-size:1.4rem;color:var(--pine);margin-bottom:10px}
-  .lock-screen p{color:var(--muted);font-size:.95rem;max-width:420px;margin:0 auto 26px;line-height:1.8}
-  .lock-ig{display:inline-flex;align-items:center;gap:9px;font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.02rem;color:#fff;background:linear-gradient(135deg,#D9613A,#E8865F);border-radius:14px;padding:14px 30px;text-decoration:none;box-shadow:var(--shadow-sm);transition:.2s}
-  .lock-ig:hover{transform:translateY(-2px)}
   footer .dev-credit{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.8rem;color:var(--pine-2);font-weight:600;letter-spacing:.2px}
   footer .dev-credit b{color:var(--pine);font-weight:700}
   footer .dev-credit .spark{color:var(--leaf)}
@@ -213,17 +206,6 @@
   </div>
 
 
-  <!-- شاشة القفل المؤقت -->
-  <div class="lock-screen" id="lockScreen" style="display:none">
-    <div class="lock-ic">🔒</div>
-    <h2>تم قفل النظام إلى إشعار آخر</h2>
-    <p>التقديم متوقف مؤقتاً. تابع صفحتنا على إنستغرام لمعرفة آخر الأخبار والمستجدات.</p>
-    <a class="lock-ig" href="https://www.instagram.com/advance_team313?igsh=ZHEwNHFteDlsd2Ry" target="_blank" rel="noopener">
-      📷 تابعونا على إنستغرام
-    </a>
-  </div>
-
-  <div id="appContent" style="display:none">
   <header>
     <span class="badge"><span class="dot"></span> فريق تعزيز التقدم التطوعي</span>
     <h1>انضم إلينا <span>كمتطوع</span></h1>
@@ -348,7 +330,6 @@
       <button class="again" id="again" style="margin-top:14px">تقديم طلب آخر</button>
     </div>
   </div>
-  </div><!-- /appContent -->
 
   <footer>
     © فريق تعزيز التقدم التطوعي — جميع الحقوق محفوظة
@@ -362,16 +343,6 @@
   import { db, VOLUNTEERS_COLLECTION, STATUS_COLLECTION } from "./firebase-config.js";
   import { collection, addDoc, doc, setDoc, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-
-  // ===== التحكم بفتح/قفل التقديم =====
-  // غيّر هذا السطر فقط: true = مفتوح للتقديم | false = مقفول مؤقتاً
-  const REGISTRATION_OPEN = false;
-
-  if(REGISTRATION_OPEN){
-    document.getElementById("appContent").style.display = "block";
-  }else{
-    document.getElementById("lockScreen").style.display = "block";
-  }
 
   const form  = document.getElementById("form");
   const btn   = document.getElementById("btn");
