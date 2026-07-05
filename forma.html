@@ -41,9 +41,9 @@
   .field{margin-bottom:18px}
   .field label{display:block;font-weight:600;font-size:.95rem;margin-bottom:8px;color:var(--ink)}
   .field label b{color:var(--clay)}
-  .field input,.field textarea{width:100%;font-family:inherit;font-size:1rem;color:var(--ink);background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:13px 16px;transition:.2s}
+  .field input,.field textarea,.field select{width:100%;font-family:inherit;font-size:1rem;color:var(--ink);background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:13px 16px;transition:.2s}
   .field textarea{resize:vertical;min-height:70px}
-  .field input:focus,.field textarea:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
 
   /* التوقيع الإلكتروني */
   .sig-wrap{margin-bottom:18px}
@@ -135,6 +135,12 @@
       </div>
       <div class="field">
         <label>التحصيل الدراسي الكامل <b>*</b></label>
+        <select id="eduRole" required style="margin-bottom:10px">
+          <option value="" disabled selected>اختر الصفة (طالب / متخرج / موظف)</option>
+          <option value="طالب">طالب</option>
+          <option value="متخرج">متخرج</option>
+          <option value="موظف">موظف</option>
+        </select>
         <input type="text" id="education" placeholder="مثال: بكالوريوس طب أسنان" required>
       </div>
 
@@ -266,6 +272,9 @@
     const signature = canvas.toDataURL("image/png");
 
     try{
+      const eduRole = document.getElementById("eduRole").value;
+      const eduText = document.getElementById("education").value.trim();
+      const educationCombined = eduText ? `${eduRole} - ${eduText}` : eduRole;
       await addDoc(collection(db, TEAM_FORM_COLLECTION), {
         fullName:   document.getElementById("fullName").value.trim(),
         specialty:  document.getElementById("specialty").value.trim(),
@@ -274,7 +283,8 @@
         address:    document.getElementById("address").value.trim(),
         phone:      document.getElementById("phone").value.trim(),
         prevTeam:   document.getElementById("prevTeam").value.trim(),
-        education:  document.getElementById("education").value.trim(),
+        education:  educationCombined,
+        role:       eduRole,
         signature:  signature,
         createdAt:  serverTimestamp()
       });
