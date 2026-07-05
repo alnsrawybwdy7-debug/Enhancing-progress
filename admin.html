@@ -66,6 +66,9 @@
   .edit-lbl{display:block;font-weight:600;font-size:.88rem;color:var(--ink);margin:12px 0 6px}
   .edit-inp{width:100%;font-family:inherit;font-size:1rem;color:var(--ink);background:var(--cream);border:1.5px solid var(--line);border-radius:11px;padding:11px 13px;transition:.2s}
   .edit-inp:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
+  .sig-box{margin-top:10px}
+  .sig-box .sig-k{font-size:.8rem;color:var(--muted);font-weight:600;margin-bottom:5px}
+  .sig-box img{width:100%;max-width:260px;height:90px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px;cursor:zoom-in}
   .modal-box{background:#fff;border-radius:22px;box-shadow:var(--shadow);max-width:380px;width:100%;padding:32px 28px;text-align:center;animation:rise .3s ease both}
   .modal-box h3{font-family:"Reem Kufi",sans-serif;font-size:1.25rem;color:var(--pine);margin-bottom:8px}
   .modal-box p{color:var(--muted);font-size:.9rem;margin-bottom:22px}
@@ -205,6 +208,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="applicants">👥 المتقدّمون</button>
     <button class="tab" data-tab="workshop">📋 حضور الورشة</button>
+    <button class="tab" data-tab="teamform">📝 بيانات الاستمارة</button>
   </div>
 
   <!-- قسم المتقدّمين (عبر رابط الانضمام) -->
@@ -259,6 +263,25 @@
     </div>
 
     <div class="list" id="wsList"></div>
+  </section>
+
+  <!-- قسم بيانات الاستمارة (أعضاء الفريق) -->
+  <section id="sec-teamform" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">بيانات الاستمارة</h2>
+      <button class="export-btn export-gov" id="exportTeamBtn">📊 تصدير Excel (بنات/ولد)</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat all"><div class="num" id="tfAll">0</div><div class="lbl">إجمالي الاستمارات</div></div>
+      <div class="stat acc"><div class="num" id="tfSigned">0</div><div class="lbl">موقّعة</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="tfSearch" placeholder="🔍 بحث بالاسم، الهاتف، التخصص، المحافظة...">
+    </div>
+
+    <div class="list" id="tfList"></div>
   </section>
 
   <footer class="app-footer">
@@ -321,10 +344,11 @@
 
 <!-- مكتبة إنشاء ملفات Excel -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, TEAM_FORM_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
   import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc }
@@ -343,6 +367,8 @@
   let unsubscribe = null; // لإيقاف الاستماع عند الخروج
   let wsAll = [];         // حضور الورشة (يتحدث لحظياً)
   let wsUnsub = null;     // لإيقاف استماع الورشة
+  let teamAll = [];       // بيانات الاستمارة (يتحدث لحظياً)
+  let teamUnsub = null;   // لإيقاف استماع الاستمارة
 
   // تكبير صورة الهوية عند الضغط عليها
   const lightbox    = document.getElementById("lightbox");
@@ -356,6 +382,7 @@
   const closeLb = () => { lightbox.classList.remove("show"); lightboxImg.src = ""; };
   lightbox.addEventListener("click", closeLb);
   document.getElementById("lbClose").addEventListener("click", closeLb);
+  window.zoomImg = (src) => { lightboxImg.src = src; lightbox.classList.add("show"); };
 
   function showToast(msg, isErr=false){
     document.getElementById("toastTxt").textContent = msg;
@@ -399,12 +426,14 @@
       document.getElementById("adminEmail").textContent = user.email;
       startListening();
       startWorkshopListening();
+      startTeamListening();
     }else{
       app.style.display = "none";
       loginScreen.style.display = "grid";
       loginForm.reset();
       if(unsubscribe){ unsubscribe(); unsubscribe = null; }
       if(wsUnsub){ wsUnsub(); wsUnsub = null; }
+      if(teamUnsub){ teamUnsub(); teamUnsub = null; }
     }
   });
 
@@ -694,6 +723,7 @@
       const which = tab.dataset.tab;
       document.getElementById("sec-applicants").style.display = which === "applicants" ? "block" : "none";
       document.getElementById("sec-workshop").style.display   = which === "workshop"   ? "block" : "none";
+      document.getElementById("sec-teamform").style.display   = which === "teamform"   ? "block" : "none";
     });
   });
 
@@ -856,7 +886,7 @@
 
   function openGenderModal(source){
     if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
-    const data = source === "applicants" ? allRequests : wsAll;
+    const data = source === "applicants" ? allRequests : (source === "workshop" ? wsAll : teamAll);
     if(!data || data.length === 0){ showToast("لا توجد بيانات للتصدير", true); return; }
     govSource = source;
     genderModal.classList.add("show");
@@ -866,10 +896,11 @@
 
   document.getElementById("exportGovBtn").addEventListener("click", () => openGenderModal("applicants"));
   document.getElementById("exportWsGovBtn").addEventListener("click", () => openGenderModal("workshop"));
+  document.getElementById("exportTeamBtn").addEventListener("click", () => openGenderModal("teamform"));
   document.getElementById("cancelGender").addEventListener("click", closeGenderModal);
   genderModal.addEventListener("click", (e) => { if(e.target === genderModal) closeGenderModal(); });
-  document.getElementById("chooseGirls").addEventListener("click", () => runGovExport("female"));
-  document.getElementById("chooseBoys").addEventListener("click", () => runGovExport("male"));
+  document.getElementById("chooseGirls").addEventListener("click", () => { govSource === "teamform" ? runTeamExport("female") : runGovExport("female"); });
+  document.getElementById("chooseBoys").addEventListener("click", () => { govSource === "teamform" ? runTeamExport("male") : runGovExport("male"); });
 
   function runGovExport(gender){
     const source = govSource;
@@ -937,6 +968,148 @@
     XLSX.writeFile(wb, `${srcName}-${genName}-${today}.xlsx`);
 
     showToast(`تم تصدير ${picked.length} ${gender==="female"?"بنت":"ولد"} ✓`);
+  }
+
+  // ===== 14) بيانات الاستمارة (أعضاء الفريق) =====
+  function startTeamListening(){
+    const q = query(collection(db, TEAM_FORM_COLLECTION), orderBy("createdAt","desc"));
+    teamUnsub = onSnapshot(q, (snap) => {
+      teamAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateTeamStats();
+      renderTeam();
+    }, (err) => { console.error(err); });
+  }
+
+  function updateTeamStats(){
+    document.getElementById("tfAll").textContent    = teamAll.length;
+    document.getElementById("tfSigned").textContent = teamAll.filter(r => r.signature).length;
+  }
+
+  document.getElementById("tfSearch").addEventListener("input", renderTeam);
+
+  function renderTeam(){
+    const term = document.getElementById("tfSearch").value.trim().toLowerCase();
+    const el = document.getElementById("tfList");
+    const filtered = teamAll.filter(r =>
+      !term ||
+      (r.fullName||"").toLowerCase().includes(term) ||
+      (r.phone||"").includes(term) ||
+      (r.specialty||"").toLowerCase().includes(term) ||
+      (r.address||"").toLowerCase().includes(term)
+    );
+
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="empty"><div class="e-ic">📝</div><h3>لا توجد استمارات</h3><p>${teamAll.length===0 ? "لم تُملأ أي استمارة بعد" : "لا توجد نتائج مطابقة"}</p></div>`;
+      return;
+    }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+
+    el.innerHTML = filtered.map(r => `
+      <div class="req">
+        <div class="r-top">
+          <div>
+            <div class="r-name">${esc(r.fullName)}</div>
+            <div class="r-gov">${esc(r.specialty||"")}${r.birth ? " • مواليد " + esc(r.birth) : ""}</div>
+          </div>
+          <span class="pill ${r.signature ? "applied-yes":"applied-no"}">${r.signature ? "موقّعة ✓" : "بدون توقيع"}</span>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
+          <div class="row"><span class="k">التحصيل الدراسي:</span><span class="v">${esc(r.education||"—")}</span></div>
+          <div class="row"><span class="k">المحافظة والعنوان:</span><span class="v">${esc(r.address||"—")}</span></div>
+          <div class="row"><span class="k">مكان العمل:</span><span class="v">${esc(r.work||"—")}</span></div>
+          <div class="row"><span class="k">فريق تطوعي سابق:</span><span class="v">${esc(r.prevTeam||"—")}</span></div>
+          <div class="row"><span class="k">وقت الإرسال:</span><span class="v">${fmt(r.createdAt)}</span></div>
+          ${r.signature ? `<div class="sig-box"><div class="sig-k">التوقيع الإلكتروني:</div><img src="${r.signature}" alt="توقيع" onclick="zoomImg('${r.signature}')"></div>` : ``}
+        </div>
+        <div class="actions">
+          <button class="b-del" style="flex:1;width:auto" onclick="removeTeam('${r.id}','${esc(r.fullName)}')">🗑 حذف الاستمارة</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  window.removeTeam = async (id, name) => {
+    if(!confirm(`حذف استمارة "${name}" نهائياً؟`)) return;
+    try{ await deleteDoc(doc(db, TEAM_FORM_COLLECTION, id)); showToast("تم حذف الاستمارة"); }
+    catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
+  };
+
+  // تصدير الاستمارة إلى Excel مع تضمين صورة التوقيع (حسب الجنس)
+  async function runTeamExport(gender){
+    const source = govSource;
+    closeGenderModal();
+    if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+
+    // اسأل عن الأسماء غير المعروفة الجنس
+    for(const r of teamAll){
+      const first = normName(r.fullName).split(" ")[0] || "";
+      if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
+        const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
+        manualGender.set(first, isGirl ? "female" : "male");
+      }
+    }
+
+    const picked = teamAll.filter(r => detectGender(r.fullName) === gender)
+                          .sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    if(picked.length === 0){ showToast(gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات", true); return; }
+
+    showToast("جاري تجهيز الملف...");
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(gender==="female" ? "بنات" : "ولد", { views:[{ rightToLeft:true }] });
+    ws.columns = [
+      { header:"ت", width:5 },
+      { header:"الاسم الكامل", width:24 },
+      { header:"التخصص", width:18 },
+      { header:"المواليد", width:10 },
+      { header:"مكان العمل وعنوانه", width:26 },
+      { header:"المحافظة وعنوان السكن", width:26 },
+      { header:"رقم الهاتف", width:15 },
+      { header:"فريق تطوعي سابق", width:18 },
+      { header:"التحصيل الدراسي", width:20 },
+      { header:"التوقيع", width:26 },
+    ];
+    // تنسيق الترويسة
+    ws.getRow(1).font = { bold:true };
+    ws.getRow(1).alignment = { horizontal:"center", vertical:"middle" };
+    ws.getRow(1).height = 24;
+
+    for(let i=0; i<picked.length; i++){
+      const r = picked[i];
+      const rowIdx = i + 2;
+      const row = ws.getRow(rowIdx);
+      row.values = [ i+1, r.fullName||"", r.specialty||"", r.birth||"", r.work||"", r.address||"", r.phone||"", r.prevTeam||"", r.education||"" ];
+      row.height = 54;
+      row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
+
+      // إدراج صورة التوقيع بعمود التوقيع (العمود العاشر، فهرس 9)
+      if(r.signature && /^data:image\/(png|jpeg);base64,/.test(r.signature)){
+        try{
+          const ext = r.signature.indexOf("image/png") > -1 ? "png" : "jpeg";
+          const base64 = r.signature.split(",")[1];
+          const imgId = wb.addImage({ base64, extension: ext });
+          ws.addImage(imgId, {
+            tl: { col: 9.05, row: rowIdx - 1 + 0.08 },
+            ext: { width: 150, height: 46 },
+            editAs: "oneCell"
+          });
+        }catch(e){ /* تجاهل صورة تالفة */ }
+      }
+    }
+
+    try{
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const today = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = `team-form-${gender==="female"?"girls":"boys"}-${today}.xlsx`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      showToast(`تم تصدير ${picked.length} ${gender==="female"?"بنت":"ولد"} ✓`);
+    }catch(err){ console.error(err); showToast("تعذّر إنشاء الملف", true); }
   }
 </script>
 </body>
