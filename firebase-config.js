@@ -29,3 +29,6 @@ export const STATUS_COLLECTION = "status";
 
 // مجموعة حضور الورشة (بيانات البوابة — للأدمن فقط)
 export const WORKSHOP_COLLECTION = "workshop";
+
+// مجموعة استمارة أعضاء الفريق (للأدمن فقط)
+export const TEAM_FORM_COLLECTION = "form_team";
