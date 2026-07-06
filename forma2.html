@@ -345,12 +345,24 @@
     });
   }
 
+  // ضغط الصورة حتى تصل لحجم أقل من الميزانية المحددة (بايت) — يضمن دخول 6 صور بمستند واحد
+  async function compressToBudget(file, maxBytes){
+    const attempts = [[1100,0.6],[1000,0.52],[880,0.46],[760,0.4],[650,0.36],[560,0.32],[480,0.3]];
+    let last = null;
+    for(const [dim,q] of attempts){
+      const d = await compressImage(file, dim, q);
+      last = d;
+      if(d.length <= maxBytes) return d;
+    }
+    return last; // أصغر ما نقدر نوصله
+  }
+
   async function handleUpload(file, key, label){
     if(!file) return;
     if(!file.type.startsWith("image/")){ showToast("الرجاء رفع صورة صحيحة", true); return; }
     try{
-      let data = await compressImage(file, 1000, 0.6);
-      if(data.length > 900000) data = await compressImage(file, 800, 0.45);
+      // ميزانية ~135 ألف حرف لكل صورة → 6 صور ≈ 810 ألف، تبقى مساحة للتوقيع والنص تحت حد 1 ميغا
+      const data = await compressToBudget(file, 135000);
       uploads[key] = data;
       document.getElementById(key + "Img").src = data;
       document.getElementById(key + "Preview").style.display = "block";
@@ -449,6 +461,15 @@
 
     // ضغط صورة التوقيع (أبيض وأسود، حجم صغير)
     const signature = canvas.toDataURL("image/png");
+
+    // تحقق من الحجم الكلي قبل الحفظ (حد Firebase ~1 ميغا للمستند)
+    const totalBytes = [uploads.natFront, uploads.natBack, uploads.resFront, uploads.resBack, uploads.badgeFront, uploads.badgeBack, signature]
+      .reduce((sum, x) => sum + (x ? x.length : 0), 0);
+    if(totalBytes > 1000000){
+      showToast("حجم الصور كبير جداً، الرجاء إعادة رفع صور أوضوح/أصغر", true);
+      btn.classList.remove("loading"); btn.disabled = false;
+      return;
+    }
 
     try{
       const eduRole = document.getElementById("eduRole").value;
