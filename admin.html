@@ -1271,9 +1271,9 @@
       { header:"المحافظة وعنوان السكن", width:24 },
       { header:"رقم الهاتف", width:14 },
       { header:"التحصيل الدراسي", width:18 },
-      { header:"البطاقة الوطنية", width:24 },
-      { header:"بطاقة السكن", width:24 },
-      { header:"التوقيع", width:20 },
+      { header:"البطاقة الوطنية", width:40 },
+      { header:"بطاقة السكن", width:40 },
+      { header:"التوقيع", width:24 },
     ];
     ws.getRow(1).font = { bold:true };
     ws.getRow(1).alignment = { horizontal:"center", vertical:"middle" };
@@ -1293,11 +1293,11 @@
       const rowIdx = i + 2;
       const row = ws.getRow(rowIdx);
       row.values = [ i+1, r.fullName||"", r.specialty||"", r.birth||"", r.address||"", r.phone||"", r.education||"" ];
-      row.height = 96;
+      row.height = 175;
       row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
-      addImg(r.nationalId, 7, rowIdx, 150, 92);  // العمود 8 (فهرس 7)
-      addImg(r.residence,  8, rowIdx, 150, 92);  // العمود 9 (فهرس 8)
-      addImg(r.signature,  9, rowIdx, 120, 60);  // العمود 10 (فهرس 9)
+      addImg(r.nationalId, 7, rowIdx, 270, 168);  // العمود 8 (فهرس 7)
+      addImg(r.residence,  8, rowIdx, 270, 168);  // العمود 9 (فهرس 8)
+      addImg(r.signature,  9, rowIdx, 150, 74);   // العمود 10 (فهرس 9)
     }
 
     try{
