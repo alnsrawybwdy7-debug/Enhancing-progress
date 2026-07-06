@@ -297,7 +297,10 @@
   <section id="sec-docsform" style="display:none">
     <div class="sec-head">
       <h2 class="sec-title">الاستمارة مع المستمسكات</h2>
-      <button class="export-btn export-gov" id="exportDocsBtn">📊 تصدير Excel (بنات/ولد)</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="export-btn" id="exportDocsNamesBtn">📄 تصدير الأسماء</button>
+        <button class="export-btn export-gov" id="exportDocsPhotosBtn">🪪 تصدير المستمسكات</button>
+      </div>
     </div>
 
     <div class="stats">
@@ -931,12 +934,14 @@
   document.getElementById("exportGovBtn").addEventListener("click", () => openGenderModal("applicants"));
   document.getElementById("exportWsGovBtn").addEventListener("click", () => openGenderModal("workshop"));
   document.getElementById("exportTeamBtn").addEventListener("click", () => openGenderModal("teamform"));
-  document.getElementById("exportDocsBtn").addEventListener("click", () => openGenderModal("docsform"));
+  document.getElementById("exportDocsNamesBtn").addEventListener("click", () => openGenderModal("docsnames"));
+  document.getElementById("exportDocsPhotosBtn").addEventListener("click", () => openGenderModal("docsphotos"));
   document.getElementById("cancelGender").addEventListener("click", closeGenderModal);
   genderModal.addEventListener("click", (e) => { if(e.target === genderModal) closeGenderModal(); });
   function routeExport(gender){
     if(govSource === "teamform") runTeamExport(gender);
-    else if(govSource === "docsform") runDocsExport(gender);
+    else if(govSource === "docsnames") runDocsNamesExport(gender);
+    else if(govSource === "docsphotos") runDocsPhotosExport(gender);
     else runGovExport(gender);
   }
   document.getElementById("chooseGirls").addEventListener("click", () => routeExport("female"));
@@ -1177,7 +1182,7 @@
 
   function updateDocsStats(){
     document.getElementById("dfAll").textContent    = docsAll.length;
-    document.getElementById("dfSigned").textContent = docsAll.filter(r => r.nationalId && r.residence && r.signature).length;
+    document.getElementById("dfSigned").textContent = docsAll.filter(r => r.natFront && r.natBack && r.resFront && r.resBack && r.badgeFront && r.badgeBack).length;
   }
 
   document.getElementById("dfSearch").addEventListener("input", renderDocs);
@@ -1206,7 +1211,7 @@
             <div class="r-name">${esc(r.fullName)}</div>
             <div class="r-gov">${esc(r.specialty||"")}${r.birth ? " • مواليد " + esc(r.birth) : ""}</div>
           </div>
-          <span class="pill ${(r.nationalId&&r.residence) ? "applied-yes":"applied-no"}">${(r.nationalId&&r.residence) ? "مكتملة ✓" : "ناقصة"}</span>
+          <span class="pill ${(r.natFront&&r.natBack&&r.resFront&&r.resBack&&r.badgeFront&&r.badgeBack) ? "applied-yes":"applied-no"}">${(r.natFront&&r.natBack&&r.resFront&&r.resBack&&r.badgeFront&&r.badgeBack) ? "مكتملة ✓" : "ناقصة"}</span>
         </div>
         <div class="rows">
           <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
@@ -1216,9 +1221,13 @@
           <div class="row"><span class="k">فريق تطوعي سابق:</span><span class="v">${esc(r.prevTeam||"—")}</span></div>
           <div class="row"><span class="k">وقت الإرسال:</span><span class="v">${fmt(r.createdAt)}</span></div>
           <div class="docs-imgs">
-            ${r.nationalId ? `<div class="doc-img"><div class="sig-k">البطاقة الوطنية:</div><img src="${r.nationalId}" alt="بطاقة وطنية" onclick="zoomImg('${r.nationalId}')"></div>` : ``}
-            ${r.residence ? `<div class="doc-img"><div class="sig-k">بطاقة السكن:</div><img src="${r.residence}" alt="بطاقة سكن" onclick="zoomImg('${r.residence}')"></div>` : ``}
-            ${r.signature ? `<div class="doc-img"><div class="sig-k">التوقيع:</div><img src="${r.signature}" alt="توقيع" class="sig-thumb" onclick="zoomImg('${r.signature}')"></div>` : ``}
+            ${r.natFront ? `<div class="doc-img"><div class="sig-k">وطنية (أمامي):</div><img src="${r.natFront}" onclick="zoomImg('${r.natFront}')"></div>` : ``}
+            ${r.natBack ? `<div class="doc-img"><div class="sig-k">وطنية (خلفي):</div><img src="${r.natBack}" onclick="zoomImg('${r.natBack}')"></div>` : ``}
+            ${r.resFront ? `<div class="doc-img"><div class="sig-k">سكن (أمامي):</div><img src="${r.resFront}" onclick="zoomImg('${r.resFront}')"></div>` : ``}
+            ${r.resBack ? `<div class="doc-img"><div class="sig-k">سكن (خلفي):</div><img src="${r.resBack}" onclick="zoomImg('${r.resBack}')"></div>` : ``}
+            ${r.badgeFront ? `<div class="doc-img"><div class="sig-k">باج (أمامي):</div><img src="${r.badgeFront}" onclick="zoomImg('${r.badgeFront}')"></div>` : ``}
+            ${r.badgeBack ? `<div class="doc-img"><div class="sig-k">باج (خلفي):</div><img src="${r.badgeBack}" onclick="zoomImg('${r.badgeBack}')"></div>` : ``}
+            ${r.signature ? `<div class="doc-img"><div class="sig-k">التوقيع:</div><img src="${r.signature}" class="sig-thumb" onclick="zoomImg('${r.signature}')"></div>` : ``}
           </div>
         </div>
         <div class="actions">
@@ -1235,10 +1244,8 @@
   };
 
   // تصدير الاستمارة مع المستمسكات إلى Excel (صور: بطاقة وطنية + سكن + توقيع)
-  async function runDocsExport(gender){
-    closeGenderModal();
-    if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
-
+  // اختيار وترتيب موحّد — يضمن تطابق التسلسل بين ملف الأسماء وملف المستمسكات
+  function pickDocs(gender){
     if(gender !== "all"){
       for(const r of docsAll){
         const first = normName(r.fullName).split(" ")[0] || "";
@@ -1248,58 +1255,26 @@
         }
       }
     }
-
     let picked = ((gender === "all") ? [...docsAll] : docsAll.filter(r => detectGender(r.fullName) === gender))
                         .sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
-    // ثبّت "عبدالله عبدالسلام عبدالرضا" أول واحد في ملف الولد وملف الكل
     if(gender === "male" || gender === "all"){
       const LEAD_NAME = "عبدالله عبدالسلام عبدالرضا";
       const lead = picked.filter(r => nameMatch(r.fullName, LEAD_NAME));
       if(lead.length){ picked = [...lead, ...picked.filter(r => !nameMatch(r.fullName, LEAD_NAME))]; }
     }
-    if(picked.length === 0){ showToast(gender==="all" ? "ماكو بيانات للتصدير" : (gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات"), true); return; }
+    return picked;
+  }
 
-    showToast("جاري تجهيز الملف (قد يستغرق وقتاً للصور)...");
+  function docsAddImg(wb, ws, dataUrl, colIdx, rowIdx, w, h){
+    if(!dataUrl || !/^data:image\/(png|jpeg);base64,/.test(dataUrl)) return;
+    try{
+      const ext = dataUrl.indexOf("image/png") > -1 ? "png" : "jpeg";
+      const imgId = wb.addImage({ base64: dataUrl.split(",")[1], extension: ext });
+      ws.addImage(imgId, { tl:{ col: colIdx + 0.05, row: rowIdx - 1 + 0.05 }, ext:{ width:w, height:h }, editAs:"oneCell" });
+    }catch(e){}
+  }
 
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(gender==="all" ? "الكل" : (gender==="female" ? "بنات" : "ولد"), { views:[{ rightToLeft:true }] });
-    ws.columns = [
-      { header:"ت", width:5 },
-      { header:"الاسم الكامل", width:22 },
-      { header:"التخصص", width:16 },
-      { header:"المواليد", width:9 },
-      { header:"المحافظة وعنوان السكن", width:24 },
-      { header:"رقم الهاتف", width:14 },
-      { header:"التحصيل الدراسي", width:18 },
-      { header:"البطاقة الوطنية", width:40 },
-      { header:"بطاقة السكن", width:40 },
-      { header:"التوقيع", width:24 },
-    ];
-    ws.getRow(1).font = { bold:true };
-    ws.getRow(1).alignment = { horizontal:"center", vertical:"middle" };
-    ws.getRow(1).height = 24;
-
-    function addImg(dataUrl, colIdx, rowIdx, w, h){
-      if(!dataUrl || !/^data:image\/(png|jpeg);base64,/.test(dataUrl)) return;
-      try{
-        const ext = dataUrl.indexOf("image/png") > -1 ? "png" : "jpeg";
-        const imgId = wb.addImage({ base64: dataUrl.split(",")[1], extension: ext });
-        ws.addImage(imgId, { tl:{ col: colIdx + 0.05, row: rowIdx - 1 + 0.05 }, ext:{ width:w, height:h }, editAs:"oneCell" });
-      }catch(e){}
-    }
-
-    for(let i=0; i<picked.length; i++){
-      const r = picked[i];
-      const rowIdx = i + 2;
-      const row = ws.getRow(rowIdx);
-      row.values = [ i+1, r.fullName||"", r.specialty||"", r.birth||"", r.address||"", r.phone||"", r.education||"" ];
-      row.height = 175;
-      row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
-      addImg(r.nationalId, 7, rowIdx, 270, 168);  // العمود 8 (فهرس 7)
-      addImg(r.residence,  8, rowIdx, 270, 168);  // العمود 9 (فهرس 8)
-      addImg(r.signature,  9, rowIdx, 150, 74);   // العمود 10 (فهرس 9)
-    }
-
+  async function saveDocsWb(wb, gender, prefix){
     try{
       const buf = await wb.xlsx.writeBuffer();
       const blob = new Blob([buf], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -1307,11 +1282,74 @@
       const a = document.createElement("a");
       const today = new Date().toISOString().slice(0,10);
       a.href = url;
-      a.download = `docs-form-${gender==="all"?"all":(gender==="female"?"girls":"boys")}-${today}.xlsx`;
+      a.download = `${prefix}-${gender==="all"?"all":(gender==="female"?"girls":"boys")}-${today}.xlsx`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
-      showToast(`تم تصدير ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
     }catch(err){ console.error(err); showToast("تعذّر إنشاء الملف", true); }
+  }
+
+  // ملف الأسماء: البيانات النصية + التوقيع (بدون صور المستمسكات)
+  async function runDocsNamesExport(gender){
+    closeGenderModal();
+    if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    const picked = pickDocs(gender);
+    if(picked.length === 0){ showToast(gender==="all" ? "ماكو بيانات للتصدير" : (gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات"), true); return; }
+    showToast("جاري تجهيز ملف الأسماء...");
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(gender==="all" ? "الكل" : (gender==="female" ? "بنات" : "ولد"), { views:[{ rightToLeft:true }] });
+    ws.columns = [
+      { header:"ت", width:5 }, { header:"الاسم الكامل", width:24 }, { header:"التخصص", width:18 },
+      { header:"المواليد", width:10 }, { header:"مكان العمل وعنوانه", width:26 }, { header:"المحافظة وعنوان السكن", width:26 },
+      { header:"رقم الهاتف", width:15 }, { header:"فريق تطوعي سابق", width:18 }, { header:"التحصيل الدراسي", width:20 }, { header:"التوقيع", width:24 },
+    ];
+    ws.getRow(1).font = { bold:true };
+    ws.getRow(1).alignment = { horizontal:"center", vertical:"middle" };
+    ws.getRow(1).height = 24;
+    for(let i=0; i<picked.length; i++){
+      const r = picked[i], rowIdx = i + 2, row = ws.getRow(rowIdx);
+      row.values = [ i+1, r.fullName||"", r.specialty||"", r.birth||"", r.work||"", r.address||"", r.phone||"", r.prevTeam||"", r.education||"" ];
+      row.height = 54;
+      row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
+      docsAddImg(wb, ws, r.signature, 9, rowIdx, 150, 46);
+    }
+    await saveDocsWb(wb, gender, "docs-names");
+    showToast(`تم تصدير أسماء ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
+  }
+
+  // ملف المستمسكات: التسلسل + الاسم + الصور الست (بنفس تسلسل ملف الأسماء)
+  async function runDocsPhotosExport(gender){
+    closeGenderModal();
+    if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    const picked = pickDocs(gender);
+    if(picked.length === 0){ showToast(gender==="all" ? "ماكو بيانات للتصدير" : (gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات"), true); return; }
+    showToast("جاري تجهيز ملف المستمسكات (قد يستغرق وقتاً للصور)...");
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(gender==="all" ? "الكل" : (gender==="female" ? "بنات" : "ولد"), { views:[{ rightToLeft:true }] });
+    ws.columns = [
+      { header:"ت", width:5 }, { header:"الاسم الكامل", width:22 },
+      { header:"وطنية (أمامي)", width:34 }, { header:"وطنية (خلفي)", width:34 },
+      { header:"سكن (أمامي)", width:34 }, { header:"سكن (خلفي)", width:34 },
+      { header:"باج (أمامي)", width:34 }, { header:"باج (خلفي)", width:34 },
+    ];
+    ws.getRow(1).font = { bold:true };
+    ws.getRow(1).alignment = { horizontal:"center", vertical:"middle" };
+    ws.getRow(1).height = 24;
+    for(let i=0; i<picked.length; i++){
+      const r = picked[i], rowIdx = i + 2, row = ws.getRow(rowIdx);
+      row.values = [ i+1, r.fullName||"" ];
+      row.height = 150;
+      row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
+      docsAddImg(wb, ws, r.natFront,   2, rowIdx, 230, 144);
+      docsAddImg(wb, ws, r.natBack,    3, rowIdx, 230, 144);
+      docsAddImg(wb, ws, r.resFront,   4, rowIdx, 230, 144);
+      docsAddImg(wb, ws, r.resBack,    5, rowIdx, 230, 144);
+      docsAddImg(wb, ws, r.badgeFront, 6, rowIdx, 230, 144);
+      docsAddImg(wb, ws, r.badgeBack,  7, rowIdx, 230, 144);
+    }
+    await saveDocsWb(wb, gender, "docs-photos");
+    showToast(`تم تصدير مستمسكات ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
   }
 </script>
 </body>
