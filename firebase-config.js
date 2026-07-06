@@ -32,3 +32,6 @@ export const WORKSHOP_COLLECTION = "workshop";
 
 // مجموعة استمارة أعضاء الفريق (للأدمن فقط)
 export const TEAM_FORM_COLLECTION = "form_team";
+
+// مجموعة الاستمارة مع المستمسكات (صور الهوية والسكن — للأدمن فقط)
+export const DOCS_FORM_COLLECTION = "form_docs";
