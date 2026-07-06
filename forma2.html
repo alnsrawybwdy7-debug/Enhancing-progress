@@ -233,25 +233,75 @@
   // ===== رفع وضغط المستمسكات =====
   let natData = null, resData = null;
 
+  // قراءة اتجاه الصورة من بيانات EXIF (لتصحيح الصور المقلوبة من الموبايل)
+  function getOrientation(file){
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try{
+          const view = new DataView(e.target.result);
+          if(view.getUint16(0, false) !== 0xFFD8){ resolve(1); return; } // ليست JPEG
+          const length = view.byteLength; let offset = 2;
+          while(offset < length){
+            if(view.getUint16(offset+2, false) <= 8){ resolve(1); return; }
+            const marker = view.getUint16(offset, false); offset += 2;
+            if(marker === 0xFFE1){
+              if(view.getUint32(offset += 2, false) !== 0x45786966){ resolve(1); return; }
+              const little = view.getUint16(offset += 6, false) === 0x4949;
+              offset += view.getUint32(offset + 4, little);
+              const tags = view.getUint16(offset, little); offset += 2;
+              for(let i=0; i<tags; i++){
+                if(view.getUint16(offset + (i*12), little) === 0x0112){
+                  resolve(view.getUint16(offset + (i*12) + 8, little)); return;
+                }
+              }
+            } else if((marker & 0xFF00) !== 0xFF00){ break; }
+            else { offset += view.getUint16(offset, false); }
+          }
+          resolve(1);
+        }catch(err){ resolve(1); }
+      };
+      reader.onerror = () => resolve(1);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
   function compressImage(file, maxDim, quality){
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const img = new Image();
-        img.onload = () => {
-          let { width, height } = img;
-          if(width > height && width > maxDim){ height = height * maxDim / width; width = maxDim; }
-          else if(height > maxDim){ width = width * maxDim / height; height = maxDim; }
-          const cv = document.createElement("canvas");
-          cv.width = width; cv.height = height;
-          cv.getContext("2d").drawImage(img, 0, 0, width, height);
-          resolve(cv.toDataURL("image/jpeg", quality));
+      getOrientation(file).then((orientation) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width, h = img.height, scale = 1;
+            if(w > h && w > maxDim) scale = maxDim / w;
+            else if(h >= w && h > maxDim) scale = maxDim / h;
+            const dw = Math.round(w * scale), dh = Math.round(h * scale);
+            const cv = document.createElement("canvas");
+            const swap = orientation >= 5 && orientation <= 8; // اتجاهات 90/270 تبدّل الأبعاد
+            cv.width  = swap ? dh : dw;
+            cv.height = swap ? dw : dh;
+            const c = cv.getContext("2d");
+            // تصحيح الاتجاه حسب EXIF
+            switch(orientation){
+              case 2: c.transform(-1, 0, 0, 1, cv.width, 0); break;
+              case 3: c.transform(-1, 0, 0, -1, cv.width, cv.height); break;
+              case 4: c.transform(1, 0, 0, -1, 0, cv.height); break;
+              case 5: c.transform(0, 1, 1, 0, 0, 0); break;
+              case 6: c.transform(0, 1, -1, 0, cv.width, 0); break;
+              case 7: c.transform(0, -1, -1, 0, cv.width, cv.height); break;
+              case 8: c.transform(0, -1, 1, 0, 0, cv.height); break;
+              default: break;
+            }
+            c.drawImage(img, 0, 0, dw, dh);
+            resolve(cv.toDataURL("image/jpeg", quality));
+          };
+          img.onerror = reject;
+          img.src = reader.result;
         };
-        img.onerror = reject;
-        img.src = reader.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
     });
   }
 
