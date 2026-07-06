@@ -1265,12 +1265,23 @@
     return picked;
   }
 
-  function docsAddImg(wb, ws, dataUrl, colIdx, rowIdx, w, h){
+  function docsAddImg(wb, ws, dataUrl, colIdx, rowIdx, opt){
     if(!dataUrl || !/^data:image\/(png|jpeg);base64,/.test(dataUrl)) return;
+    opt = opt || {};
     try{
       const ext = dataUrl.indexOf("image/png") > -1 ? "png" : "jpeg";
       const imgId = wb.addImage({ base64: dataUrl.split(",")[1], extension: ext });
-      ws.addImage(imgId, { tl:{ col: colIdx + 0.05, row: rowIdx - 1 + 0.05 }, ext:{ width:w, height:h }, editAs:"oneCell" });
+      if(opt.fill){
+        // تملأ الخلية بالكامل (نفس القياس والمحاذاة للجميع بغض النظر عن أبعاد الرفع)
+        const m = 0.03; // هامش بسيط داخل الخلية
+        ws.addImage(imgId, {
+          tl:{ col: colIdx + m,          row: rowIdx - 1 + m },
+          br:{ col: colIdx + 1 - m,      row: rowIdx - 1 + 1 - m },
+          editAs:"oneCell"
+        });
+      }else{
+        ws.addImage(imgId, { tl:{ col: colIdx + 0.05, row: rowIdx - 1 + 0.05 }, ext:{ width: opt.w||150, height: opt.h||46 }, editAs:"oneCell" });
+      }
     }catch(e){}
   }
 
@@ -1311,7 +1322,7 @@
       row.values = [ i+1, r.fullName||"", r.specialty||"", r.birth||"", r.work||"", r.address||"", r.phone||"", r.prevTeam||"", r.education||"" ];
       row.height = 54;
       row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
-      docsAddImg(wb, ws, r.signature, 9, rowIdx, 150, 46);
+      docsAddImg(wb, ws, r.signature, 9, rowIdx, { w:150, h:46 });
     }
     await saveDocsWb(wb, gender, "docs-names");
     showToast(`تم تصدير أسماء ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
@@ -1339,14 +1350,14 @@
     for(let i=0; i<picked.length; i++){
       const r = picked[i], rowIdx = i + 2, row = ws.getRow(rowIdx);
       row.values = [ i+1, r.fullName||"" ];
-      row.height = 150;
+      row.height = 140;
       row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
-      docsAddImg(wb, ws, r.natFront,   2, rowIdx, 230, 144);
-      docsAddImg(wb, ws, r.natBack,    3, rowIdx, 230, 144);
-      docsAddImg(wb, ws, r.resFront,   4, rowIdx, 230, 144);
-      docsAddImg(wb, ws, r.resBack,    5, rowIdx, 230, 144);
-      docsAddImg(wb, ws, r.badgeFront, 6, rowIdx, 230, 144);
-      docsAddImg(wb, ws, r.badgeBack,  7, rowIdx, 230, 144);
+      docsAddImg(wb, ws, r.natFront,   2, rowIdx, { fill:true });
+      docsAddImg(wb, ws, r.natBack,    3, rowIdx, { fill:true });
+      docsAddImg(wb, ws, r.resFront,   4, rowIdx, { fill:true });
+      docsAddImg(wb, ws, r.resBack,    5, rowIdx, { fill:true });
+      docsAddImg(wb, ws, r.badgeFront, 6, rowIdx, { fill:true });
+      docsAddImg(wb, ws, r.badgeBack,  7, rowIdx, { fill:true });
     }
     await saveDocsWb(wb, gender, "docs-photos");
     showToast(`تم تصدير مستمسكات ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
