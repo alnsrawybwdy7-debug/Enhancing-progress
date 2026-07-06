@@ -77,6 +77,9 @@
   .modal-choice .mc-ic{font-size:1.8rem;display:block;margin-bottom:6px}
   .modal-choice.girls:hover{border-color:#D4537E;background:#FBEAF0;color:#993556}
   .modal-choice.boys:hover{border-color:#378ADD;background:#E6F1FB;color:#185FA5}
+  .modal-choice.all{background:var(--cream-2)}
+  .modal-choice.all:hover{border-color:var(--leaf);background:#E4F2EB;color:var(--pine)}
+  .modal-choice.all .mc-ic{display:inline;margin:0 0 0 6px;font-size:1.2rem}
   .modal-cancel{margin-top:16px;font-family:inherit;font-weight:600;color:var(--muted);background:none;border:none;cursor:pointer;font-size:.9rem}
   .modal-cancel:hover{color:var(--clay)}
   .ws-link{display:flex;align-items:center;gap:7px;font-family:inherit;font-weight:600;font-size:.9rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:10px 16px;cursor:pointer;text-decoration:none;transition:.2s}
@@ -298,6 +301,7 @@
       <button class="modal-choice girls" id="chooseGirls"><span class="mc-ic">👧</span> بنات</button>
       <button class="modal-choice boys" id="chooseBoys"><span class="mc-ic">👦</span> ولد</button>
     </div>
+    <button class="modal-choice all" id="chooseAll" style="width:100%;margin-top:12px;justify-content:center"><span class="mc-ic">👥</span> الكل (بدون تفرقة)</button>
     <button class="modal-cancel" id="cancelGender">إلغاء</button>
   </div>
 </div>
@@ -901,6 +905,7 @@
   genderModal.addEventListener("click", (e) => { if(e.target === genderModal) closeGenderModal(); });
   document.getElementById("chooseGirls").addEventListener("click", () => { govSource === "teamform" ? runTeamExport("female") : runGovExport("female"); });
   document.getElementById("chooseBoys").addEventListener("click", () => { govSource === "teamform" ? runTeamExport("male") : runGovExport("male"); });
+  document.getElementById("chooseAll").addEventListener("click", () => { govSource === "teamform" ? runTeamExport("all") : runGovExport("all"); });
 
   function runGovExport(gender){
     const source = govSource;
@@ -918,30 +923,32 @@
       records = [...wsAll];
     }
 
-    // استثنِ المشرف (يُثبّت بالأعلى)، واسأل المستخدم عن أي اسم غير معروف الجنس
+    // استثنِ المشرف (يُثبّت بالأعلى)، واسأل المستخدم عن أي اسم غير معروف الجنس (إلا عند تصدير الكل)
     const pool = records.filter(r => !(source === "workshop" && isSupervisor(r)));
-    for(const r of pool){
-      const first = normName(r.fullName).split(" ")[0] || "";
-      if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
-        const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
-        manualGender.set(first, isGirl ? "female" : "male");
+    if(gender !== "all"){
+      for(const r of pool){
+        const first = normName(r.fullName).split(" ")[0] || "";
+        if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
+          const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
+          manualGender.set(first, isGirl ? "female" : "male");
+        }
       }
     }
 
-    // الفصل حسب الجنس (كل الأسماء صارت مصنّفة الآن)
-    const picked = pool.filter(r => detectGender(r.fullName) === gender);
+    // الفصل حسب الجنس، أو الكل بدون تفرقة
+    const picked = (gender === "all") ? [...pool] : pool.filter(r => detectGender(r.fullName) === gender);
 
     // ترتيب أبجدي
     picked.sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
 
-    // تثبيت الطبيب المشرف بأول صف في ملفي البنات والولد (لتصدير الورشة فقط)
+    // تثبيت الطبيب المشرف بأول صف (لتصدير الورشة فقط)
     if(source === "workshop"){
       const sup = wsAll.find(isSupervisor);
       if(sup) picked.unshift(sup);
     }
 
     if(picked.length === 0){
-      showToast(gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات", true);
+      showToast(gender==="all" ? "ماكو بيانات للتصدير" : (gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات"), true);
       return;
     }
 
@@ -959,15 +966,15 @@
     ws["!cols"] = [{wch:15},{wch:24},{wch:18},{wch:12},{wch:20}];
     const wb = XLSX.utils.book_new();
     wb.Workbook = { Views: [{ RTL: true }] };
-    const sheetName = gender==="female" ? "بنات" : "ولد";
+    const sheetName = gender==="all" ? "الكل" : (gender==="female" ? "بنات" : "ولد");
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
     const today = new Date().toISOString().slice(0,10);
     const srcName = source === "applicants" ? "applicants" : "workshop";
-    const genName = gender==="female" ? "girls" : "boys";
+    const genName = gender==="all" ? "all" : (gender==="female" ? "girls" : "boys");
     XLSX.writeFile(wb, `${srcName}-${genName}-${today}.xlsx`);
 
-    showToast(`تم تصدير ${picked.length} ${gender==="female"?"بنت":"ولد"} ✓`);
+    showToast(`تم تصدير ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
   }
 
   // ===== 14) بيانات الاستمارة (أعضاء الفريق) =====
@@ -1041,31 +1048,33 @@
     closeGenderModal();
     if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
 
-    // اسأل عن الأسماء غير المعروفة الجنس
-    for(const r of teamAll){
-      const first = normName(r.fullName).split(" ")[0] || "";
-      if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
-        const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
-        manualGender.set(first, isGirl ? "female" : "male");
+    // اسأل عن الأسماء غير المعروفة الجنس (إلا عند تصدير الكل)
+    if(gender !== "all"){
+      for(const r of teamAll){
+        const first = normName(r.fullName).split(" ")[0] || "";
+        if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
+          const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
+          manualGender.set(first, isGirl ? "female" : "male");
+        }
       }
     }
 
-    let picked = teamAll.filter(r => detectGender(r.fullName) === gender)
+    let picked = ((gender === "all") ? [...teamAll] : teamAll.filter(r => detectGender(r.fullName) === gender))
                         .sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
-    // في ملف الولد: ثبّت "عبدالله عبدالسلام عبدالرضا" أول واحد دائماً
-    if(gender === "male"){
+    // في ملف الولد أو ملف الكل: ثبّت "عبدالله عبدالسلام عبدالرضا" أول واحد دائماً
+    if(gender === "male" || gender === "all"){
       const LEAD_NAME = "عبدالله عبدالسلام عبدالرضا";
       const lead = picked.filter(r => nameMatch(r.fullName, LEAD_NAME));
       if(lead.length){
         picked = [...lead, ...picked.filter(r => !nameMatch(r.fullName, LEAD_NAME))];
       }
     }
-    if(picked.length === 0){ showToast(gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات", true); return; }
+    if(picked.length === 0){ showToast(gender==="all" ? "ماكو بيانات للتصدير" : (gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات"), true); return; }
 
     showToast("جاري تجهيز الملف...");
 
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(gender==="female" ? "بنات" : "ولد", { views:[{ rightToLeft:true }] });
+    const ws = wb.addWorksheet(gender==="all" ? "الكل" : (gender==="female" ? "بنات" : "ولد"), { views:[{ rightToLeft:true }] });
     ws.columns = [
       { header:"ت", width:5 },
       { header:"الاسم الكامل", width:24 },
@@ -1113,10 +1122,10 @@
       const a = document.createElement("a");
       const today = new Date().toISOString().slice(0,10);
       a.href = url;
-      a.download = `team-form-${gender==="female"?"girls":"boys"}-${today}.xlsx`;
+      a.download = `team-form-${gender==="all"?"all":(gender==="female"?"girls":"boys")}-${today}.xlsx`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
-      showToast(`تم تصدير ${picked.length} ${gender==="female"?"بنت":"ولد"} ✓`);
+      showToast(`تم تصدير ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
     }catch(err){ console.error(err); showToast("تعذّر إنشاء الملف", true); }
   }
 </script>
