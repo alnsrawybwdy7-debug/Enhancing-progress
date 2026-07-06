@@ -158,25 +158,65 @@
         <input type="text" id="education" placeholder="مثال: بكالوريوس طب أسنان" required>
       </div>
 
-      <!-- رفع المستمسكات -->
+      <!-- رفع المستمسكات (كل مستمسك وجهين) -->
       <div class="up-field">
-        <label>صورة البطاقة الوطنية <b>*</b></label>
-        <div class="up-box" id="natBox">
+        <label>البطاقة الوطنية — الوجه الأمامي <b>*</b></label>
+        <div class="up-box" id="natFrontBox">
           <div class="up-ic">🪪</div>
-          <div class="up-txt"><b id="natName">اضغط لرفع صورة البطاقة الوطنية</b>صيغة JPG أو PNG</div>
-          <input type="file" id="natFile" accept="image/*" required>
+          <div class="up-txt"><b id="natFrontName">اضغط لرفع الوجه الأمامي للبطاقة الوطنية</b>صيغة JPG أو PNG</div>
+          <input type="file" id="natFrontFile" accept="image/*" required>
         </div>
-        <div class="up-preview" id="natPreview"><img id="natImg" alt="البطاقة الوطنية"></div>
+        <div class="up-preview" id="natFrontPreview"><img id="natFrontImg" alt="البطاقة الوطنية أمامي"></div>
       </div>
 
       <div class="up-field">
-        <label>صورة بطاقة السكن <b>*</b></label>
-        <div class="up-box" id="resBox">
-          <div class="up-ic">🏠</div>
-          <div class="up-txt"><b id="resName">اضغط لرفع صورة بطاقة السكن</b>صيغة JPG أو PNG</div>
-          <input type="file" id="resFile" accept="image/*" required>
+        <label>البطاقة الوطنية — الوجه الخلفي <b>*</b></label>
+        <div class="up-box" id="natBackBox">
+          <div class="up-ic">🪪</div>
+          <div class="up-txt"><b id="natBackName">اضغط لرفع الوجه الخلفي للبطاقة الوطنية</b>صيغة JPG أو PNG</div>
+          <input type="file" id="natBackFile" accept="image/*" required>
         </div>
-        <div class="up-preview" id="resPreview"><img id="resImg" alt="بطاقة السكن"></div>
+        <div class="up-preview" id="natBackPreview"><img id="natBackImg" alt="البطاقة الوطنية خلفي"></div>
+      </div>
+
+      <div class="up-field">
+        <label>بطاقة السكن — الوجه الأمامي <b>*</b></label>
+        <div class="up-box" id="resFrontBox">
+          <div class="up-ic">🏠</div>
+          <div class="up-txt"><b id="resFrontName">اضغط لرفع الوجه الأمامي لبطاقة السكن</b>صيغة JPG أو PNG</div>
+          <input type="file" id="resFrontFile" accept="image/*" required>
+        </div>
+        <div class="up-preview" id="resFrontPreview"><img id="resFrontImg" alt="بطاقة السكن أمامي"></div>
+      </div>
+
+      <div class="up-field">
+        <label>بطاقة السكن — الوجه الخلفي <b>*</b></label>
+        <div class="up-box" id="resBackBox">
+          <div class="up-ic">🏠</div>
+          <div class="up-txt"><b id="resBackName">اضغط لرفع الوجه الخلفي لبطاقة السكن</b>صيغة JPG أو PNG</div>
+          <input type="file" id="resBackFile" accept="image/*" required>
+        </div>
+        <div class="up-preview" id="resBackPreview"><img id="resBackImg" alt="بطاقة السكن خلفي"></div>
+      </div>
+
+      <div class="up-field">
+        <label>الباج الجامعي — الوجه الأمامي <b>*</b></label>
+        <div class="up-box" id="badgeFrontBox">
+          <div class="up-ic">🎓</div>
+          <div class="up-txt"><b id="badgeFrontName">اضغط لرفع الوجه الأمامي للباج الجامعي</b>صيغة JPG أو PNG</div>
+          <input type="file" id="badgeFrontFile" accept="image/*" required>
+        </div>
+        <div class="up-preview" id="badgeFrontPreview"><img id="badgeFrontImg" alt="الباج الجامعي أمامي"></div>
+      </div>
+
+      <div class="up-field">
+        <label>الباج الجامعي — الوجه الخلفي <b>*</b></label>
+        <div class="up-box" id="badgeBackBox">
+          <div class="up-ic">🎓</div>
+          <div class="up-txt"><b id="badgeBackName">اضغط لرفع الوجه الخلفي للباج الجامعي</b>صيغة JPG أو PNG</div>
+          <input type="file" id="badgeBackFile" accept="image/*" required>
+        </div>
+        <div class="up-preview" id="badgeBackPreview"><img id="badgeBackImg" alt="الباج الجامعي خلفي"></div>
       </div>
 
       <!-- التوقيع الإلكتروني -->
@@ -231,7 +271,7 @@
   }
 
   // ===== رفع وضغط المستمسكات =====
-  let natData = null, resData = null;
+  const uploads = { natFront:null, natBack:null, resFront:null, resBack:null, badgeFront:null, badgeBack:null };
 
   // قراءة اتجاه الصورة من بيانات EXIF (لتصحيح الصور المقلوبة من الموبايل)
   function getOrientation(file){
@@ -305,31 +345,32 @@
     });
   }
 
-  async function handleUpload(file, which){
+  async function handleUpload(file, key, label){
     if(!file) return;
     if(!file.type.startsWith("image/")){ showToast("الرجاء رفع صورة صحيحة", true); return; }
     try{
       let data = await compressImage(file, 1000, 0.6);
-      // إن كانت كبيرة، اضغط أكثر
       if(data.length > 900000) data = await compressImage(file, 800, 0.45);
-      if(which === "nat"){
-        natData = data;
-        document.getElementById("natImg").src = data;
-        document.getElementById("natPreview").style.display = "block";
-        document.getElementById("natName").textContent = "✓ تم رفع البطاقة الوطنية (اضغط للتغيير)";
-        document.getElementById("natBox").classList.add("done");
-      }else{
-        resData = data;
-        document.getElementById("resImg").src = data;
-        document.getElementById("resPreview").style.display = "block";
-        document.getElementById("resName").textContent = "✓ تم رفع بطاقة السكن (اضغط للتغيير)";
-        document.getElementById("resBox").classList.add("done");
-      }
+      uploads[key] = data;
+      document.getElementById(key + "Img").src = data;
+      document.getElementById(key + "Preview").style.display = "block";
+      document.getElementById(key + "Name").textContent = "✓ تم رفع " + label + " (اضغط للتغيير)";
+      document.getElementById(key + "Box").classList.add("done");
     }catch(e){ console.error(e); showToast("تعذّرت معالجة الصورة، جرّب صورة ثانية", true); }
   }
 
-  document.getElementById("natFile").addEventListener("change", (e) => handleUpload(e.target.files[0], "nat"));
-  document.getElementById("resFile").addEventListener("change", (e) => handleUpload(e.target.files[0], "res"));
+  // إعداد الحقول الستة
+  const UP_FIELDS = [
+    { key:"natFront",   label:"البطاقة الوطنية (أمامي)" },
+    { key:"natBack",    label:"البطاقة الوطنية (خلفي)" },
+    { key:"resFront",   label:"بطاقة السكن (أمامي)" },
+    { key:"resBack",    label:"بطاقة السكن (خلفي)" },
+    { key:"badgeFront", label:"الباج الجامعي (أمامي)" },
+    { key:"badgeBack",  label:"الباج الجامعي (خلفي)" },
+  ];
+  UP_FIELDS.forEach(f => {
+    document.getElementById(f.key + "File").addEventListener("change", (e) => handleUpload(e.target.files[0], f.key, f.label));
+  });
 
   // ===== لوحة التوقيع =====
   const pad    = document.getElementById("sigPad");
@@ -400,8 +441,8 @@
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if(!form.checkValidity()){ showToast("الرجاء تعبئة جميع الحقول الإلزامية", true); form.reportValidity(); return; }
-    if(!natData){ showToast("صورة البطاقة الوطنية إلزامية", true); document.getElementById("natBox").scrollIntoView({behavior:"smooth", block:"center"}); return; }
-    if(!resData){ showToast("صورة بطاقة السكن إلزامية", true); document.getElementById("resBox").scrollIntoView({behavior:"smooth", block:"center"}); return; }
+    const missing = UP_FIELDS.find(f => !uploads[f.key]);
+    if(missing){ showToast("مطلوب رفع: " + missing.label, true); document.getElementById(missing.key + "Box").scrollIntoView({behavior:"smooth", block:"center"}); return; }
     if(!hasSig){ showToast("التوقيع الإلكتروني إلزامي — وقّع في الإطار", true); pad.scrollIntoView({behavior:"smooth", block:"center"}); return; }
 
     btn.classList.add("loading"); btn.disabled = true;
@@ -423,8 +464,12 @@
         prevTeam:   document.getElementById("prevTeam").value.trim(),
         education:  educationCombined,
         role:       eduRole,
-        nationalId: natData,
-        residence:  resData,
+        natFront:   uploads.natFront,
+        natBack:    uploads.natBack,
+        resFront:   uploads.resFront,
+        resBack:    uploads.resBack,
+        badgeFront: uploads.badgeFront,
+        badgeBack:  uploads.badgeBack,
         signature:  signature,
         createdAt:  serverTimestamp()
       });
@@ -443,14 +488,18 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     hasSig = false;
     hint.classList.remove("hide");
-    // إعادة تعيين رفع الصور
-    natData = null; resData = null;
-    document.getElementById("natPreview").style.display = "none";
-    document.getElementById("resPreview").style.display = "none";
-    document.getElementById("natName").textContent = "اضغط لرفع صورة البطاقة الوطنية";
-    document.getElementById("resName").textContent = "اضغط لرفع صورة بطاقة السكن";
-    document.getElementById("natBox").classList.remove("done");
-    document.getElementById("resBox").classList.remove("done");
+    // إعادة تعيين رفع الصور الستة
+    UP_FIELDS.forEach(f => {
+      uploads[f.key] = null;
+      document.getElementById(f.key + "Preview").style.display = "none";
+      document.getElementById(f.key + "Box").classList.remove("done");
+    });
+    document.getElementById("natFrontName").textContent  = "اضغط لرفع الوجه الأمامي للبطاقة الوطنية";
+    document.getElementById("natBackName").textContent   = "اضغط لرفع الوجه الخلفي للبطاقة الوطنية";
+    document.getElementById("resFrontName").textContent  = "اضغط لرفع الوجه الأمامي لبطاقة السكن";
+    document.getElementById("resBackName").textContent   = "اضغط لرفع الوجه الخلفي لبطاقة السكن";
+    document.getElementById("badgeFrontName").textContent= "اضغط لرفع الوجه الأمامي للباج الجامعي";
+    document.getElementById("badgeBackName").textContent = "اضغط لرفع الوجه الخلفي للباج الجامعي";
     doneCard.style.display = "none";
     card.style.display = "block";
     btn.classList.remove("loading"); btn.disabled = false;
