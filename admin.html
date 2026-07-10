@@ -248,6 +248,7 @@
     </div>
 
     <div class="list" id="list"></div>
+    <button id="loadMoreApplicants" onclick="loadMoreApplicants()" style="display:none;width:100%;margin-top:16px;font-family:inherit;font-weight:600;font-size:.95rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px;cursor:pointer">⬇️ عرض المزيد</button>
   </section>
 
   <!-- قسم حضور الورشة (عبر البوابة) -->
@@ -291,6 +292,7 @@
     </div>
 
     <div class="list" id="tfList"></div>
+    <button id="loadMoreTeam" onclick="loadMoreTeam()" style="display:none;width:100%;margin-top:16px;font-family:inherit;font-weight:600;font-size:.95rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px;cursor:pointer">⬇️ عرض المزيد</button>
   </section>
 
   <!-- قسم الاستمارة مع المستمسكات -->
@@ -313,6 +315,7 @@
     </div>
 
     <div class="list" id="dfList"></div>
+    <button id="loadMoreDocs" onclick="loadMoreDocs()" style="display:none;width:100%;margin-top:16px;font-family:inherit;font-weight:600;font-size:.95rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px;cursor:pointer">⬇️ عرض المزيد</button>
   </section>
 
   <footer class="app-footer">
@@ -383,7 +386,7 @@
   import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-  import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc }
+  import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc, limit, getDocs, getCountFromServer, where, getDoc }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
   // عناصر الواجهة
@@ -476,19 +479,25 @@
   // ===== 4) جلب الطلبات لحظياً من Firestore =====
   let backfilled = false; // لمزامنة الطلبات القديمة مرة واحدة
 
+  let applicantsLimit = 25;
   function startListening(){
-    const q = query(collection(db, VOLUNTEERS_COLLECTION), orderBy("createdAt","desc"));
+    if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+    const q = query(collection(db, VOLUNTEERS_COLLECTION), orderBy("createdAt","desc"), limit(applicantsLimit));
     unsubscribe = onSnapshot(q, (snap) => {
       allRequests = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       updateStats();
       render();
       backfillStatus(); // مزامنة التتبع برقم الهاتف للطلبات القديمة
       reconcileWorkshop(); // ربط سجلات الورشة القديمة بالمتقدّمين
+      // زر عرض المزيد
+      const moreBtn = document.getElementById("loadMoreApplicants");
+      if(moreBtn) moreBtn.style.display = (snap.size >= applicantsLimit) ? "block" : "none";
     }, (err) => {
       console.error(err);
       showToast("تعذّر جلب الطلبات", true);
     });
   }
+  window.loadMoreApplicants = () => { applicantsLimit += 25; startListening(); };
 
   // ربط سجلات حضور الورشة بالمتقدّمين — يعمل في كل مرة، لكنه يربط كل سجل مرة واحدة
   async function reconcileWorkshop(){
@@ -527,11 +536,27 @@
   }
 
   // ===== 5) الإحصائيات =====
-  function updateStats(){
-    document.getElementById("cAll").textContent  = allRequests.length;
-    document.getElementById("cPend").textContent = allRequests.filter(r => r.status==="pending").length;
-    document.getElementById("cAcc").textContent  = allRequests.filter(r => r.status==="accepted").length;
-    document.getElementById("cRej").textContent  = allRequests.filter(r => r.status==="rejected").length;
+  async function updateStats(){
+    // العدّ من الخادم مباشرة (خفيف جداً، بدون تحميل أي صورة)
+    try{
+      const col = collection(db, VOLUNTEERS_COLLECTION);
+      const [all, pend, acc, rej] = await Promise.all([
+        getCountFromServer(col),
+        getCountFromServer(query(col, where("status","==","pending"))),
+        getCountFromServer(query(col, where("status","==","accepted"))),
+        getCountFromServer(query(col, where("status","==","rejected"))),
+      ]);
+      document.getElementById("cAll").textContent  = all.data().count;
+      document.getElementById("cPend").textContent = pend.data().count;
+      document.getElementById("cAcc").textContent  = acc.data().count;
+      document.getElementById("cRej").textContent  = rej.data().count;
+    }catch(e){
+      // احتياط: العدّ من المُحمَّل
+      document.getElementById("cAll").textContent  = allRequests.length;
+      document.getElementById("cPend").textContent = allRequests.filter(r => r.status==="pending").length;
+      document.getElementById("cAcc").textContent  = allRequests.filter(r => r.status==="accepted").length;
+      document.getElementById("cRej").textContent  = allRequests.filter(r => r.status==="rejected").length;
+    }
   }
 
   // ===== 6) البحث والفلترة =====
@@ -702,14 +727,16 @@
   };
 
   // ===== 9) تصدير Excel (مع إزالة المكرر حسب الاسم + الهاتف، نحتفظ بالأحدث) =====
-  document.getElementById("exportBtn").addEventListener("click", () => {
+  document.getElementById("exportBtn").addEventListener("click", async () => {
     if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
-    if(allRequests.length === 0){ showToast("لا توجد طلبات للتصدير", true); return; }
+    showToast("جاري تحضير البيانات...");
+    const full = await fetchAllDocs(VOLUNTEERS_COLLECTION);
+    if(full.length === 0){ showToast("لا توجد طلبات للتصدير", true); return; }
 
-    // allRequests مرتبة من الأحدث للأقدم — نحتفظ بأول ظهور (الأحدث) لكل شخص
+    // نحتفظ بأول ظهور (الأحدث) لكل شخص
     const seen = new Set();
     const unique = [];
-    for(const r of allRequests){
+    for(const r of full){
       const key = (r.fullName||"").trim().toLowerCase() + "||" + (r.phone||"").trim();
       if(seen.has(key)) continue;
       seen.add(key);
@@ -882,14 +909,16 @@
   });
 
   // ===== 12) تصدير حضور الورشة =====
-  document.getElementById("exportWsBtn").addEventListener("click", () => {
+  document.getElementById("exportWsBtn").addEventListener("click", async () => {
     if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
-    if(wsAll.length === 0){ showToast("لا يوجد حاضرون للتصدير", true); return; }
+    showToast("جاري تحضير البيانات...");
+    const wsFull = await fetchAllDocs(WORKSHOP_COLLECTION);
+    if(wsFull.length === 0){ showToast("لا يوجد حاضرون للتصدير", true); return; }
 
     const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
     // ترتيب أبجدي حسب الاسم، مع تثبيت الطبيب المشرف بأول صف
-    const sup0 = wsAll.filter(isSupervisor);
-    const rest0 = wsAll.filter(r => !isSupervisor(r)).sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    const sup0 = wsFull.filter(isSupervisor);
+    const rest0 = wsFull.filter(r => !isSupervisor(r)).sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
     const sorted = [...sup0, ...rest0];
     const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","الصفة","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
     const rows = sorted.map(r => {
@@ -948,20 +977,30 @@
   document.getElementById("chooseBoys").addEventListener("click", () => routeExport("male"));
   document.getElementById("chooseAll").addEventListener("click", () => routeExport("all"));
 
-  function runGovExport(gender){
+  // جلب كل مستندات مجموعة (للتصدير فقط — لأن القوائم تُحمّل مجزّأة للسرعة)
+  async function fetchAllDocs(colName){
+    const s = await getDocs(query(collection(db, colName), orderBy("createdAt","desc")));
+    return s.docs.map(d => ({ id:d.id, ...d.data() }));
+  }
+
+  async function runGovExport(gender){
     const source = govSource;
     closeGenderModal();
+    showToast("جاري تحضير البيانات...");
+
+    // جلب كل السجلات (مو المُحمَّل بالقائمة فقط)
+    const full = await fetchAllDocs(source === "applicants" ? VOLUNTEERS_COLLECTION : WORKSHOP_COLLECTION);
 
     // تجهيز السجلات (المتقدّمون: إزالة المكرر؛ الورشة: الكل)
     let records;
     if(source === "applicants"){
       const seen = new Set(); records = [];
-      for(const r of allRequests){
+      for(const r of full){
         const key = (r.fullName||"").trim().toLowerCase() + "||" + normPhone(r.phone);
         if(seen.has(key)) continue; seen.add(key); records.push(r);
       }
     }else{
-      records = [...wsAll];
+      records = full;
     }
 
     // استثنِ المشرف (يُثبّت بالأعلى)، واسأل المستخدم عن أي اسم غير معروف الجنس (إلا عند تصدير الكل)
@@ -984,7 +1023,7 @@
 
     // تثبيت الطبيب المشرف بأول صف (لتصدير الورشة فقط)
     if(source === "workshop"){
-      const sup = wsAll.find(isSupervisor);
+      const sup = full.find(isSupervisor);
       if(sup) picked.unshift(sup);
     }
 
@@ -1019,18 +1058,30 @@
   }
 
   // ===== 14) بيانات الاستمارة (أعضاء الفريق) =====
+  let teamLimit = 25;
   function startTeamListening(){
-    const q = query(collection(db, TEAM_FORM_COLLECTION), orderBy("createdAt","desc"));
+    if(teamUnsub){ teamUnsub(); teamUnsub = null; }
+    const q = query(collection(db, TEAM_FORM_COLLECTION), orderBy("createdAt","desc"), limit(teamLimit));
     teamUnsub = onSnapshot(q, (snap) => {
       teamAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       updateTeamStats();
       renderTeam();
+      const moreBtn = document.getElementById("loadMoreTeam");
+      if(moreBtn) moreBtn.style.display = (snap.size >= teamLimit) ? "block" : "none";
     }, (err) => { console.error(err); });
   }
+  window.loadMoreTeam = () => { teamLimit += 25; startTeamListening(); };
 
-  function updateTeamStats(){
-    document.getElementById("tfAll").textContent    = teamAll.length;
-    document.getElementById("tfSigned").textContent = teamAll.filter(r => r.signature).length;
+  async function updateTeamStats(){
+    try{
+      const c = await getCountFromServer(collection(db, TEAM_FORM_COLLECTION));
+      const n = c.data().count;
+      document.getElementById("tfAll").textContent    = n;
+      document.getElementById("tfSigned").textContent = n; // الاستمارة تُلزم التوقيع
+    }catch(e){
+      document.getElementById("tfAll").textContent    = teamAll.length;
+      document.getElementById("tfSigned").textContent = teamAll.filter(r => r.signature).length;
+    }
   }
 
   document.getElementById("tfSearch").addEventListener("input", renderTeam);
@@ -1088,10 +1139,12 @@
     const source = govSource;
     closeGenderModal();
     if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    showToast("جاري تحضير البيانات...");
+    const teamFull = await fetchAllDocs(TEAM_FORM_COLLECTION);
 
     // اسأل عن الأسماء غير المعروفة الجنس (إلا عند تصدير الكل)
     if(gender !== "all"){
-      for(const r of teamAll){
+      for(const r of teamFull){
         const first = normName(r.fullName).split(" ")[0] || "";
         if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
           const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
@@ -1100,7 +1153,7 @@
       }
     }
 
-    let picked = ((gender === "all") ? [...teamAll] : teamAll.filter(r => detectGender(r.fullName) === gender))
+    let picked = ((gender === "all") ? [...teamFull] : teamFull.filter(r => detectGender(r.fullName) === gender))
                         .sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
     // في ملف الولد أو ملف الكل: ثبّت "عبدالله عبدالسلام عبدالرضا" أول واحد دائماً
     if(gender === "male" || gender === "all"){
@@ -1171,18 +1224,30 @@
   }
 
   // ===== 15) الاستمارة مع المستمسكات =====
+  let docsLimit = 15;
   function startDocsListening(){
-    const q = query(collection(db, DOCS_FORM_COLLECTION), orderBy("createdAt","desc"));
+    if(docsUnsub){ docsUnsub(); docsUnsub = null; }
+    const q = query(collection(db, DOCS_FORM_COLLECTION), orderBy("createdAt","desc"), limit(docsLimit));
     docsUnsub = onSnapshot(q, (snap) => {
       docsAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      updateDocsStats();
+      updateDocsStats(snap.size);
       renderDocs();
+      const moreBtn = document.getElementById("loadMoreDocs");
+      if(moreBtn) moreBtn.style.display = (snap.size >= docsLimit) ? "block" : "none";
     }, (err) => { console.error(err); });
   }
+  window.loadMoreDocs = () => { docsLimit += 15; startDocsListening(); };
 
-  function updateDocsStats(){
-    document.getElementById("dfAll").textContent    = docsAll.length;
-    document.getElementById("dfSigned").textContent = docsAll.filter(r => r.natFront && r.natBack && r.resFront && r.resBack && r.badgeFront && r.badgeBack).length;
+  async function updateDocsStats(loadedCount){
+    try{
+      const c = await getCountFromServer(collection(db, DOCS_FORM_COLLECTION));
+      const n = c.data().count;
+      document.getElementById("dfAll").textContent = n;
+      document.getElementById("dfSigned").textContent = n; // الاستمارة تُلزم كل الصور، فالكل مكتمل
+    }catch(e){
+      document.getElementById("dfAll").textContent = loadedCount != null ? loadedCount : docsAll.length;
+      document.getElementById("dfSigned").textContent = docsAll.filter(r => r.natFront && r.natBack && r.resFront && r.resBack && r.badgeFront && r.badgeBack).length;
+    }
   }
 
   document.getElementById("dfSearch").addEventListener("input", renderDocs);
@@ -1245,9 +1310,10 @@
 
   // تصدير الاستمارة مع المستمسكات إلى Excel (صور: بطاقة وطنية + سكن + توقيع)
   // اختيار وترتيب موحّد — يضمن تطابق التسلسل بين ملف الأسماء وملف المستمسكات
-  function pickDocs(gender){
+  async function pickDocs(gender){
+    const docsFull = await fetchAllDocs(DOCS_FORM_COLLECTION);
     if(gender !== "all"){
-      for(const r of docsAll){
+      for(const r of docsFull){
         const first = normName(r.fullName).split(" ")[0] || "";
         if(first && detectGender(r.fullName) === "unknown" && !manualGender.has(first)){
           const isGirl = confirm(`الاسم "${(r.fullName||"").trim()}" غير معروف الجنس.\n\nاضغط «موافق / OK» = بنت 👧\nاضغط «إلغاء / Cancel» = ولد 👦`);
@@ -1255,7 +1321,7 @@
         }
       }
     }
-    let picked = ((gender === "all") ? [...docsAll] : docsAll.filter(r => detectGender(r.fullName) === gender))
+    let picked = ((gender === "all") ? [...docsFull] : docsFull.filter(r => detectGender(r.fullName) === gender))
                         .sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
     if(gender === "male" || gender === "all"){
       const LEAD_NAME = "عبدالله عبدالسلام عبدالرضا";
@@ -1323,7 +1389,7 @@
   async function runDocsNamesExport(gender){
     closeGenderModal();
     if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
-    const picked = pickDocs(gender);
+    const picked = await pickDocs(gender);
     if(picked.length === 0){ showToast(gender==="all" ? "ماكو بيانات للتصدير" : (gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات"), true); return; }
     showToast("جاري تجهيز ملف الأسماء...");
 
@@ -1352,7 +1418,7 @@
   async function runDocsPhotosExport(gender){
     closeGenderModal();
     if(typeof ExcelJS === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
-    const picked = pickDocs(gender);
+    const picked = await pickDocs(gender);
     if(picked.length === 0){ showToast(gender==="all" ? "ماكو بيانات للتصدير" : (gender==="female" ? "ماكو بنات بهذه البيانات" : "ماكو ولد بهذه البيانات"), true); return; }
     showToast("جاري تجهيز ملف المستمسكات (قد يستغرق وقتاً للصور)...");
 
