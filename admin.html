@@ -248,7 +248,6 @@
     </div>
 
     <div class="list" id="list"></div>
-    <button id="loadMoreApplicants" onclick="loadMoreApplicants()" style="display:none;width:100%;margin-top:16px;font-family:inherit;font-weight:600;font-size:.95rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px;cursor:pointer">⬇️ عرض المزيد</button>
   </section>
 
   <!-- قسم حضور الورشة (عبر البوابة) -->
@@ -292,7 +291,6 @@
     </div>
 
     <div class="list" id="tfList"></div>
-    <button id="loadMoreTeam" onclick="loadMoreTeam()" style="display:none;width:100%;margin-top:16px;font-family:inherit;font-weight:600;font-size:.95rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px;cursor:pointer">⬇️ عرض المزيد</button>
   </section>
 
   <!-- قسم الاستمارة مع المستمسكات -->
@@ -315,7 +313,6 @@
     </div>
 
     <div class="list" id="dfList"></div>
-    <button id="loadMoreDocs" onclick="loadMoreDocs()" style="display:none;width:100%;margin-top:16px;font-family:inherit;font-weight:600;font-size:.95rem;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:13px;cursor:pointer">⬇️ عرض المزيد</button>
   </section>
 
   <footer class="app-footer">
@@ -479,25 +476,20 @@
   // ===== 4) جلب الطلبات لحظياً من Firestore =====
   let backfilled = false; // لمزامنة الطلبات القديمة مرة واحدة
 
-  let applicantsLimit = 25;
   function startListening(){
     if(unsubscribe){ unsubscribe(); unsubscribe = null; }
-    const q = query(collection(db, VOLUNTEERS_COLLECTION), orderBy("createdAt","desc"), limit(applicantsLimit));
+    const q = query(collection(db, VOLUNTEERS_COLLECTION), orderBy("createdAt","desc"));
     unsubscribe = onSnapshot(q, (snap) => {
       allRequests = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       updateStats();
       render();
       backfillStatus(); // مزامنة التتبع برقم الهاتف للطلبات القديمة
       reconcileWorkshop(); // ربط سجلات الورشة القديمة بالمتقدّمين
-      // زر عرض المزيد
-      const moreBtn = document.getElementById("loadMoreApplicants");
-      if(moreBtn) moreBtn.style.display = (snap.size >= applicantsLimit) ? "block" : "none";
     }, (err) => {
       console.error(err);
       showToast("تعذّر جلب الطلبات", true);
     });
   }
-  window.loadMoreApplicants = () => { applicantsLimit += 25; startListening(); };
 
   // ربط سجلات حضور الورشة بالمتقدّمين — يعمل في كل مرة، لكنه يربط كل سجل مرة واحدة
   async function reconcileWorkshop(){
@@ -536,27 +528,11 @@
   }
 
   // ===== 5) الإحصائيات =====
-  async function updateStats(){
-    // العدّ من الخادم مباشرة (خفيف جداً، بدون تحميل أي صورة)
-    try{
-      const col = collection(db, VOLUNTEERS_COLLECTION);
-      const [all, pend, acc, rej] = await Promise.all([
-        getCountFromServer(col),
-        getCountFromServer(query(col, where("status","==","pending"))),
-        getCountFromServer(query(col, where("status","==","accepted"))),
-        getCountFromServer(query(col, where("status","==","rejected"))),
-      ]);
-      document.getElementById("cAll").textContent  = all.data().count;
-      document.getElementById("cPend").textContent = pend.data().count;
-      document.getElementById("cAcc").textContent  = acc.data().count;
-      document.getElementById("cRej").textContent  = rej.data().count;
-    }catch(e){
-      // احتياط: العدّ من المُحمَّل
-      document.getElementById("cAll").textContent  = allRequests.length;
-      document.getElementById("cPend").textContent = allRequests.filter(r => r.status==="pending").length;
-      document.getElementById("cAcc").textContent  = allRequests.filter(r => r.status==="accepted").length;
-      document.getElementById("cRej").textContent  = allRequests.filter(r => r.status==="rejected").length;
-    }
+  function updateStats(){
+    document.getElementById("cAll").textContent  = allRequests.length;
+    document.getElementById("cPend").textContent = allRequests.filter(r => r.status==="pending").length;
+    document.getElementById("cAcc").textContent  = allRequests.filter(r => r.status==="accepted").length;
+    document.getElementById("cRej").textContent  = allRequests.filter(r => r.status==="rejected").length;
   }
 
   // ===== 6) البحث والفلترة =====
@@ -1058,30 +1034,19 @@
   }
 
   // ===== 14) بيانات الاستمارة (أعضاء الفريق) =====
-  let teamLimit = 25;
   function startTeamListening(){
     if(teamUnsub){ teamUnsub(); teamUnsub = null; }
-    const q = query(collection(db, TEAM_FORM_COLLECTION), orderBy("createdAt","desc"), limit(teamLimit));
+    const q = query(collection(db, TEAM_FORM_COLLECTION), orderBy("createdAt","desc"));
     teamUnsub = onSnapshot(q, (snap) => {
       teamAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       updateTeamStats();
       renderTeam();
-      const moreBtn = document.getElementById("loadMoreTeam");
-      if(moreBtn) moreBtn.style.display = (snap.size >= teamLimit) ? "block" : "none";
     }, (err) => { console.error(err); });
   }
-  window.loadMoreTeam = () => { teamLimit += 25; startTeamListening(); };
 
-  async function updateTeamStats(){
-    try{
-      const c = await getCountFromServer(collection(db, TEAM_FORM_COLLECTION));
-      const n = c.data().count;
-      document.getElementById("tfAll").textContent    = n;
-      document.getElementById("tfSigned").textContent = n; // الاستمارة تُلزم التوقيع
-    }catch(e){
-      document.getElementById("tfAll").textContent    = teamAll.length;
-      document.getElementById("tfSigned").textContent = teamAll.filter(r => r.signature).length;
-    }
+  function updateTeamStats(){
+    document.getElementById("tfAll").textContent    = teamAll.length;
+    document.getElementById("tfSigned").textContent = teamAll.filter(r => r.signature).length;
   }
 
   document.getElementById("tfSearch").addEventListener("input", renderTeam);
@@ -1224,30 +1189,19 @@
   }
 
   // ===== 15) الاستمارة مع المستمسكات =====
-  let docsLimit = 15;
   function startDocsListening(){
     if(docsUnsub){ docsUnsub(); docsUnsub = null; }
-    const q = query(collection(db, DOCS_FORM_COLLECTION), orderBy("createdAt","desc"), limit(docsLimit));
+    const q = query(collection(db, DOCS_FORM_COLLECTION), orderBy("createdAt","desc"));
     docsUnsub = onSnapshot(q, (snap) => {
       docsAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-      updateDocsStats(snap.size);
+      updateDocsStats();
       renderDocs();
-      const moreBtn = document.getElementById("loadMoreDocs");
-      if(moreBtn) moreBtn.style.display = (snap.size >= docsLimit) ? "block" : "none";
     }, (err) => { console.error(err); });
   }
-  window.loadMoreDocs = () => { docsLimit += 15; startDocsListening(); };
 
-  async function updateDocsStats(loadedCount){
-    try{
-      const c = await getCountFromServer(collection(db, DOCS_FORM_COLLECTION));
-      const n = c.data().count;
-      document.getElementById("dfAll").textContent = n;
-      document.getElementById("dfSigned").textContent = n; // الاستمارة تُلزم كل الصور، فالكل مكتمل
-    }catch(e){
-      document.getElementById("dfAll").textContent = loadedCount != null ? loadedCount : docsAll.length;
-      document.getElementById("dfSigned").textContent = docsAll.filter(r => r.natFront && r.natBack && r.resFront && r.resBack && r.badgeFront && r.badgeBack).length;
-    }
+  function updateDocsStats(){
+    document.getElementById("dfAll").textContent = docsAll.length;
+    document.getElementById("dfSigned").textContent = docsAll.filter(r => r.natFront && r.natBack && r.resFront && r.resBack && r.badgeFront && r.badgeBack).length;
   }
 
   document.getElementById("dfSearch").addEventListener("input", renderDocs);
