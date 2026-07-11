@@ -96,6 +96,14 @@
   .tab.active{background:linear-gradient(135deg,var(--pine),var(--leaf));color:#fff;border-color:var(--pine)}
   .sec-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
   .sec-title{font-family:"Reem Kufi",sans-serif;font-size:1.3rem;color:var(--pine)}
+  .chooser-card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:clamp(28px,5vw,46px);text-align:center;animation:rise .5s ease both}
+  .chooser-card .chooser-ic{font-size:2.6rem;margin-bottom:12px}
+  .chooser-card h2{font-family:"Reem Kufi",sans-serif;font-size:1.4rem;color:var(--pine);margin-bottom:8px}
+  .chooser-card > p{color:var(--muted);font-size:.92rem;margin-bottom:26px}
+  .chooser-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;max-width:620px;margin:0 auto}
+  .chooser-btn{display:flex;align-items:center;justify-content:center;gap:10px;font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.05rem;color:var(--pine);background:var(--cream);border:1.5px solid var(--line);border-radius:15px;padding:20px 16px;cursor:pointer;transition:.2s}
+  .chooser-btn span{font-size:1.5rem}
+  .chooser-btn:hover{background:linear-gradient(135deg,var(--pine),var(--leaf));color:#fff;border-color:var(--pine);transform:translateY(-2px);box-shadow:var(--shadow-sm)}
   /* شارات حضور الورشة */
   .pill.paid-yes{background:#DEF1E7;color:var(--green)}
   .pill.paid-no{background:#F8E0DB;color:var(--red)}
@@ -214,14 +222,29 @@
 
   <!-- تبويبات -->
   <div class="tabs">
-    <button class="tab active" data-tab="applicants">👥 المتقدّمون</button>
+    <button class="tab" data-tab="applicants">👥 المتقدّمون</button>
     <button class="tab" data-tab="workshop">📋 حضور الورشة</button>
     <button class="tab" data-tab="teamform">📝 بيانات الاستمارة</button>
     <button class="tab" data-tab="docsform">🪪 الاستمارة مع المستمسكات</button>
   </div>
 
+  <!-- شاشة اختيار القسم (تظهر أولاً — لا تُحمّل أي بيانات) -->
+  <section id="sec-chooser">
+    <div class="chooser-card">
+      <div class="chooser-ic">📂</div>
+      <h2>اختر القسم الذي تريد عرضه</h2>
+      <p>يُحمّل القسم المختار وحده لسرعة الفتح</p>
+      <div class="chooser-grid">
+        <button class="chooser-btn" onclick="selectSection('applicants')"><span>👥</span> المتقدّمون</button>
+        <button class="chooser-btn" onclick="selectSection('workshop')"><span>📋</span> حضور الورشة</button>
+        <button class="chooser-btn" onclick="selectSection('teamform')"><span>📝</span> بيانات الاستمارة</button>
+        <button class="chooser-btn" onclick="selectSection('docsform')"><span>🪪</span> الاستمارة مع المستمسكات</button>
+      </div>
+    </div>
+  </section>
+
   <!-- قسم المتقدّمين (عبر رابط الانضمام) -->
-  <section id="sec-applicants">
+  <section id="sec-applicants" style="display:none">
     <div class="sec-head">
       <h2 class="sec-title">طلبات الانضمام</h2>
       <div class="export-group">
@@ -458,20 +481,31 @@
       loginScreen.style.display = "none";
       app.style.display = "block";
       document.getElementById("adminEmail").textContent = user.email;
-      startListening();
-      startWorkshopListening();
-      startTeamListening();
-      startDocsListening();
+      showChooser(); // لا نحمّل شيئاً حتى يختار المستخدم قسماً
     }else{
       app.style.display = "none";
       loginScreen.style.display = "grid";
       loginForm.reset();
-      if(unsubscribe){ unsubscribe(); unsubscribe = null; }
-      if(wsUnsub){ wsUnsub(); wsUnsub = null; }
-      if(teamUnsub){ teamUnsub(); teamUnsub = null; }
-      if(docsUnsub){ docsUnsub(); docsUnsub = null; }
+      stopAllListeners();
     }
   });
+
+  function stopAllListeners(){
+    if(unsubscribe){ unsubscribe(); unsubscribe = null; }
+    if(wsUnsub){ wsUnsub(); wsUnsub = null; }
+    if(teamUnsub){ teamUnsub(); teamUnsub = null; }
+    if(docsUnsub){ docsUnsub(); docsUnsub = null; }
+  }
+
+  // إظهار شاشة اختيار القسم (بدون تحميل أي بيانات)
+  function showChooser(){
+    stopAllListeners();
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    ["sec-applicants","sec-workshop","sec-teamform","sec-docsform"].forEach(id => {
+      const el = document.getElementById(id); if(el) el.style.display = "none";
+    });
+    const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "block";
+  }
 
   // ===== 4) جلب الطلبات لحظياً من Firestore =====
   let backfilled = false; // لمزامنة الطلبات القديمة مرة واحدة
@@ -754,17 +788,30 @@
     showToast(`تم تصدير ${unique.length} متطوع (بدون تكرار) ✓`);
   });
 
-  // ===== 10) التبويبات =====
-  document.querySelectorAll(".tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      tab.classList.add("active");
-      const which = tab.dataset.tab;
-      document.getElementById("sec-applicants").style.display = which === "applicants" ? "block" : "none";
-      document.getElementById("sec-workshop").style.display   = which === "workshop"   ? "block" : "none";
-      document.getElementById("sec-teamform").style.display   = which === "teamform"   ? "block" : "none";
-      document.getElementById("sec-docsform").style.display   = which === "docsform"   ? "block" : "none";
+  // ===== 10) التبويبات — تحميل قسم واحد فقط عند اختياره =====
+  window.selectSection = (which) => {
+    // فعّل التبويب
+    document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === which));
+    // أخفِ شاشة الاختيار وكل الأقسام
+    const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "none";
+    ["sec-applicants","sec-workshop","sec-teamform","sec-docsform"].forEach(id => {
+      const el = document.getElementById(id); if(el) el.style.display = "none";
     });
+    // أوقف كل المستمعين وفرّغ الذاكرة (حتى يبقى خفيفاً)
+    stopAllListeners();
+    allRequests = []; wsAll = []; teamAll = []; docsAll = [];
+
+    // اعرض القسم المختار وحمّله وحده
+    const sec = document.getElementById("sec-" + which);
+    if(sec) sec.style.display = "block";
+    if(which === "applicants"){ startListening(); }
+    else if(which === "workshop"){ startWorkshopListening(); }
+    else if(which === "teamform"){ startTeamListening(); }
+    else if(which === "docsform"){ startDocsListening(); }
+  };
+
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => window.selectSection(tab.dataset.tab));
   });
 
   // ===== 11) حضور الورشة — جلب لحظي =====
