@@ -306,7 +306,7 @@
 
     <div class="stats">
       <div class="stat all"><div class="num" id="tfAll">0</div><div class="lbl">إجمالي الاستمارات</div></div>
-      <div class="stat acc"><div class="num" id="tfSigned">0</div><div class="lbl">موقّعة</div></div>
+      <div class="stat acc"><div class="num" id="tfSigned">0</div><div class="lbl">طلاب</div></div>
     </div>
 
     <div class="controls">
@@ -1093,7 +1093,7 @@
 
   function updateTeamStats(){
     document.getElementById("tfAll").textContent    = teamAll.length;
-    document.getElementById("tfSigned").textContent = teamAll.filter(r => r.signature).length;
+    document.getElementById("tfSigned").textContent = teamAll.filter(r => r.role === "طالب").length;
   }
 
   document.getElementById("tfSearch").addEventListener("input", renderTeam);
@@ -1120,18 +1120,14 @@
         <div class="r-top">
           <div>
             <div class="r-name">${esc(r.fullName)}</div>
-            <div class="r-gov">${esc(r.specialty||"")}${r.birth ? " • مواليد " + esc(r.birth) : ""}</div>
+            <div class="r-gov">${r.birth ? "مواليد " + esc(r.birth) : ""}${r.role ? (r.birth?" • ":"") + esc(r.role) : ""}</div>
           </div>
-          <span class="pill ${r.signature ? "applied-yes":"applied-no"}">${r.signature ? "موقّعة ✓" : "بدون توقيع"}</span>
         </div>
         <div class="rows">
           <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
+          <div class="row"><span class="k">تاريخ الميلاد:</span><span class="v">${esc(r.birth||"—")}</span></div>
           <div class="row"><span class="k">التحصيل الدراسي:</span><span class="v">${esc(r.education||"—")}</span></div>
-          <div class="row"><span class="k">المحافظة والعنوان:</span><span class="v">${esc(r.address||"—")}</span></div>
-          <div class="row"><span class="k">مكان العمل:</span><span class="v">${esc(r.work||"—")}</span></div>
-          <div class="row"><span class="k">فريق تطوعي سابق:</span><span class="v">${esc(r.prevTeam||"—")}</span></div>
           <div class="row"><span class="k">وقت الإرسال:</span><span class="v">${fmt(r.createdAt)}</span></div>
-          ${r.signature ? `<div class="sig-box"><div class="sig-k">التوقيع الإلكتروني:</div><img src="${r.signature}" alt="توقيع" onclick="zoomImg('${r.signature}')"></div>` : ``}
         </div>
         <div class="actions">
           <button class="b-del" style="flex:1;width:auto" onclick="removeTeam('${r.id}','${esc(r.fullName)}')">🗑 حذف الاستمارة</button>
@@ -1183,15 +1179,10 @@
     const ws = wb.addWorksheet(gender==="all" ? "الكل" : (gender==="female" ? "بنات" : "ولد"), { views:[{ rightToLeft:true }] });
     ws.columns = [
       { header:"ت", width:5 },
-      { header:"الاسم الكامل", width:24 },
-      { header:"التخصص", width:18 },
-      { header:"المواليد", width:10 },
-      { header:"مكان العمل وعنوانه", width:26 },
-      { header:"المحافظة وعنوان السكن", width:26 },
-      { header:"رقم الهاتف", width:15 },
-      { header:"فريق تطوعي سابق", width:18 },
-      { header:"التحصيل الدراسي", width:20 },
-      { header:"التوقيع", width:26 },
+      { header:"الاسم الكامل", width:26 },
+      { header:"تاريخ الميلاد", width:14 },
+      { header:"رقم الهاتف", width:16 },
+      { header:"التحصيل الدراسي", width:26 },
     ];
     // تنسيق الترويسة
     ws.getRow(1).font = { bold:true };
@@ -1202,23 +1193,9 @@
       const r = picked[i];
       const rowIdx = i + 2;
       const row = ws.getRow(rowIdx);
-      row.values = [ i+1, r.fullName||"", r.specialty||"", r.birth||"", r.work||"", r.address||"", r.phone||"", r.prevTeam||"", r.education||"" ];
-      row.height = 54;
+      row.values = [ i+1, r.fullName||"", r.birth||"", r.phone||"", r.education||"" ];
+      row.height = 22;
       row.alignment = { vertical:"middle", horizontal:"right", wrapText:true };
-
-      // إدراج صورة التوقيع بعمود التوقيع (العمود العاشر، فهرس 9)
-      if(r.signature && /^data:image\/(png|jpeg);base64,/.test(r.signature)){
-        try{
-          const ext = r.signature.indexOf("image/png") > -1 ? "png" : "jpeg";
-          const base64 = r.signature.split(",")[1];
-          const imgId = wb.addImage({ base64, extension: ext });
-          ws.addImage(imgId, {
-            tl: { col: 9.05, row: rowIdx - 1 + 0.08 },
-            ext: { width: 150, height: 46 },
-            editAs: "oneCell"
-          });
-        }catch(e){ /* تجاهل صورة تالفة */ }
-      }
     }
 
     try{
