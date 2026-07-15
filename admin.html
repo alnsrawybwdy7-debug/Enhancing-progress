@@ -216,6 +216,7 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a class="ws-link" href="workshop.html">📋 بوابة الحضور</a>
+      <a class="ws-link" href="workshop2.html">📋 بوابة ورشة 2</a>
       <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
     </div>
   </div>
@@ -224,6 +225,7 @@
   <div class="tabs">
     <button class="tab" data-tab="applicants">👥 المتقدّمون</button>
     <button class="tab" data-tab="workshop">📋 حضور الورشة</button>
+    <button class="tab" data-tab="workshop2">📋 حضور ورشة 2</button>
     <button class="tab" data-tab="teamform">📝 بيانات الاستمارة</button>
     <button class="tab" data-tab="docsform">🪪 الاستمارة مع المستمسكات</button>
   </div>
@@ -237,6 +239,7 @@
       <div class="chooser-grid">
         <button class="chooser-btn" onclick="selectSection('applicants')"><span>👥</span> المتقدّمون</button>
         <button class="chooser-btn" onclick="selectSection('workshop')"><span>📋</span> حضور الورشة</button>
+        <button class="chooser-btn" onclick="selectSection('workshop2')"><span>📋</span> حضور ورشة 2</button>
         <button class="chooser-btn" onclick="selectSection('teamform')"><span>📝</span> بيانات الاستمارة</button>
         <button class="chooser-btn" onclick="selectSection('docsform')"><span>🪪</span> الاستمارة مع المستمسكات</button>
       </div>
@@ -295,6 +298,30 @@
     </div>
 
     <div class="list" id="wsList"></div>
+  </section>
+
+  <!-- قسم حضور ورشة 2 (منفصل) -->
+  <section id="sec-workshop2" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">حضور ورشة 2</h2>
+      <div class="export-group">
+        <button class="export-btn" id="exportWs2Btn">📊 تصدير Excel</button>
+        <button class="export-btn export-gov" id="exportWs2GovBtn">🏛 تصدير للمحافظة</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat all"><div class="num" id="ws2All">0</div><div class="lbl">إجمالي الحاضرين</div></div>
+      <div class="stat acc"><div class="num" id="ws2Applied">0</div><div class="lbl">مقدّمون عبر الرابط</div></div>
+      <div class="stat pend"><div class="num" id="ws2Paid">0</div><div class="lbl">دفعوا الرسوم</div></div>
+      <div class="stat rej"><div class="num" id="ws2Not">0</div><div class="lbl">غير مقدّمين</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="ws2Search" placeholder="🔍 بحث بالاسم، الهاتف، التخصص...">
+    </div>
+
+    <div class="list" id="ws2List"></div>
   </section>
 
   <!-- قسم بيانات الاستمارة (أعضاء الفريق) -->
@@ -403,7 +430,7 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
   import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc, limit, getDocs, getCountFromServer, where, getDoc }
@@ -422,6 +449,8 @@
   let unsubscribe = null; // لإيقاف الاستماع عند الخروج
   let wsAll = [];         // حضور الورشة (يتحدث لحظياً)
   let wsUnsub = null;     // لإيقاف استماع الورشة
+  let ws2All = [];        // حضور ورشة 2 (يتحدث لحظياً)
+  let ws2Unsub = null;    // لإيقاف استماع ورشة 2
   let teamAll = [];       // بيانات الاستمارة (يتحدث لحظياً)
   let teamUnsub = null;   // لإيقاف استماع الاستمارة
   let docsAll = [];       // الاستمارة مع المستمسكات (يتحدث لحظياً)
@@ -493,6 +522,7 @@
   function stopAllListeners(){
     if(unsubscribe){ unsubscribe(); unsubscribe = null; }
     if(wsUnsub){ wsUnsub(); wsUnsub = null; }
+    if(ws2Unsub){ ws2Unsub(); ws2Unsub = null; }
     if(teamUnsub){ teamUnsub(); teamUnsub = null; }
     if(docsUnsub){ docsUnsub(); docsUnsub = null; }
   }
@@ -501,7 +531,7 @@
   function showChooser(){
     stopAllListeners();
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    ["sec-applicants","sec-workshop","sec-teamform","sec-docsform"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "block";
@@ -794,18 +824,19 @@
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === which));
     // أخفِ شاشة الاختيار وكل الأقسام
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "none";
-    ["sec-applicants","sec-workshop","sec-teamform","sec-docsform"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     // أوقف كل المستمعين وفرّغ الذاكرة (حتى يبقى خفيفاً)
     stopAllListeners();
-    allRequests = []; wsAll = []; teamAll = []; docsAll = [];
+    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = [];
 
     // اعرض القسم المختار وحمّله وحده
     const sec = document.getElementById("sec-" + which);
     if(sec) sec.style.display = "block";
     if(which === "applicants"){ startListening(); }
     else if(which === "workshop"){ startWorkshopListening(); }
+    else if(which === "workshop2"){ startWorkshop2Listening(); }
     else if(which === "teamform"){ startTeamListening(); }
     else if(which === "docsform"){ startDocsListening(); }
   };
@@ -896,12 +927,13 @@
 
   // ===== تعديل بيانات حاضر الورشة =====
   let editWsId = null;
+  let editWsSource = "workshop";
   const editModal = document.getElementById("editModal");
 
   window.openEditWs = (id) => {
     const r = wsAll.find(x => x.id === id);
     if(!r){ showToast("تعذّر إيجاد السجل", true); return; }
-    editWsId = id;
+    editWsId = id; editWsSource = "workshop";
     document.getElementById("editName").value      = r.fullName || "";
     document.getElementById("editPhone").value     = r.phone || "";
     document.getElementById("editNatId").value     = r.nationalId || "";
@@ -925,7 +957,8 @@
     const paid       = document.getElementById("editPaid").value === "yes";
     if(!fullName || !phone){ showToast("الاسم ورقم الهاتف مطلوبان", true); return; }
     try{
-      await updateDoc(doc(db, WORKSHOP_COLLECTION, editWsId), { fullName, phone, nationalId, specialty, role, paid });
+      const targetCol = editWsSource === "workshop2" ? WORKSHOP2_COLLECTION : WORKSHOP_COLLECTION;
+      await updateDoc(doc(db, targetCol, editWsId), { fullName, phone, nationalId, specialty, role, paid });
       showToast("تم حفظ التعديلات ✓");
       closeEditModal();
     }catch(err){ console.error(err); showToast("تعذّر حفظ التعديلات", true); }
@@ -969,13 +1002,122 @@
     showToast(`تم تصدير ${wsAll.length} حاضر ✓`);
   });
 
+  // ===== 12ب) حضور ورشة 2 — جلب لحظي =====
+  function startWorkshop2Listening(){
+    const q = query(collection(db, WORKSHOP2_COLLECTION), orderBy("createdAt","desc"));
+    ws2Unsub = onSnapshot(q, (snap) => {
+      ws2All = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateWs2Stats();
+      renderWs2();
+    }, (err) => { console.error(err); });
+  }
+
+  function updateWs2Stats(){
+    document.getElementById("ws2All").textContent     = ws2All.length;
+    document.getElementById("ws2Applied").textContent = ws2All.filter(r => r.applied).length;
+    document.getElementById("ws2Paid").textContent    = ws2All.filter(r => r.paid).length;
+    document.getElementById("ws2Not").textContent     = ws2All.filter(r => !r.applied).length;
+  }
+
+  document.getElementById("ws2Search").addEventListener("input", renderWs2);
+
+  function renderWs2(){
+    const term = document.getElementById("ws2Search").value.trim().toLowerCase();
+    const el = document.getElementById("ws2List");
+    const filtered = ws2All.filter(r =>
+      !term ||
+      (r.fullName||"").toLowerCase().includes(term) ||
+      (r.phone||"").includes(term) ||
+      (r.specialty||"").toLowerCase().includes(term)
+    );
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="empty"><div class="e-ic">📋</div><h3>لا يوجد حاضرون</h3><p>${ws2All.length===0 ? "لم يُسجَّل أي حاضر بعد" : "لا توجد نتائج مطابقة"}</p></div>`;
+      return;
+    }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    el.innerHTML = filtered.map(r => {
+      const sr = splitRole(r);
+      return `
+      <div class="req">
+        <div class="r-top">
+          <div>
+            <div class="r-name">${esc(r.fullName)}</div>
+            <div class="r-gov">${esc(sr.specialty||"")}${sr.role ? " • " + esc(sr.role) : ""}</div>
+          </div>
+          <span class="pill ${r.applied ? "applied-yes" : "applied-no"}">${r.applied ? "مقدّم عبر الرابط" : "غير مقدّم"}</span>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">الصفة:</span><span class="v">${esc(sr.role||"—")}</span></div>
+          <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
+          <div class="row"><span class="k">البطاقة الوطنية:</span><span class="v">${esc(r.nationalId||"")}</span></div>
+          <div class="row"><span class="k">رسوم الاشتراك:</span><span class="v"><span class="pill ${r.paid ? "paid-yes":"paid-no"}">${r.paid ? "✓ دفع" : "✕ لم يدفع"}</span></span></div>
+          ${r.linkedTicket ? `<div class="row"><span class="k">رقم الطلب:</span><span class="v" style="direction:ltr;font-weight:700;color:var(--pine)">${esc(r.linkedTicket)}</span></div>` : ``}
+          <div class="row"><span class="k">وقت التسجيل:</span><span class="v">${fmt(r.createdAt)}</span></div>
+          ${!r.applied ? `<div class="ws-alert">⚠️ هذا الشخص غير مقدّم عبر رابط الانضمام</div>` : ``}
+        </div>
+        <div class="actions">
+          <button class="b-acc" style="flex:1;width:auto" onclick="openEditWs2('${r.id}')">✏️ تعديل</button>
+          <button class="b-del" style="flex:1;width:auto" onclick="removeWs2('${r.id}','${esc(r.fullName)}')">🗑 حذف السجل</button>
+        </div>
+      </div>
+    `;
+    }).join("");
+  }
+
+  window.removeWs2 = async (id, name) => {
+    if(!confirm(`حذف سجل حضور "${name}"؟\nيمكنك إعادة إدخاله من بوابة ورشة 2.`)) return;
+    try{
+      await deleteDoc(doc(db, WORKSHOP2_COLLECTION, id));
+      showToast("تم حذف السجل");
+    }catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
+  };
+
+  window.openEditWs2 = (id) => {
+    const r = ws2All.find(x => x.id === id);
+    if(!r){ showToast("تعذّر إيجاد السجل", true); return; }
+    editWsId = id; editWsSource = "workshop2";
+    document.getElementById("editName").value      = r.fullName || "";
+    document.getElementById("editPhone").value     = r.phone || "";
+    document.getElementById("editNatId").value     = r.nationalId || "";
+    document.getElementById("editSpecialty").value = r.specialty || "";
+    document.getElementById("editRole").value      = r.role || "";
+    document.getElementById("editPaid").value      = r.paid ? "yes" : "no";
+    editModal.classList.add("show");
+  };
+
+  // ===== تصدير حضور ورشة 2 =====
+  document.getElementById("exportWs2Btn").addEventListener("click", async () => {
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    showToast("جاري تحضير البيانات...");
+    const full = await fetchAllDocs(WORKSHOP2_COLLECTION);
+    if(full.length === 0){ showToast("لا يوجد حاضرون للتصدير", true); return; }
+
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    const sup0 = full.filter(isSupervisor);
+    const rest0 = full.filter(r => !isSupervisor(r)).sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    const sorted = [...sup0, ...rest0];
+    const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","الصفة","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
+    const rows = sorted.map(r => {
+      const { specialty, role } = splitRole(r);
+      return [ r.fullName||"", r.phone||"", r.nationalId||"", specialty, role, r.paid?"نعم":"لا", r.applied?"نعم":"لا", r.linkedTicket||"", fmt(r.createdAt) ];
+    });
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:22},{wch:15},{wch:18},{wch:18},{wch:10},{wch:12},{wch:16},{wch:14},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
+    XLSX.utils.book_append_sheet(wb, ws, "حضور ورشة 2");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `workshop2-attendance-${today}.xlsx`);
+    showToast(`تم تصدير ${sorted.length} حاضر ✓`);
+  });
+
   // ===== 13) التصدير للمحافظة (ملف منفصل للبنات/الولد، 5 أعمدة فقط) =====
   let govSource = null; // "applicants" | "workshop"
   const genderModal = document.getElementById("genderModal");
 
   function openGenderModal(source){
     if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
-    const data = source === "applicants" ? allRequests : (source === "workshop" ? wsAll : (source === "teamform" ? teamAll : docsAll));
+    const data = source === "applicants" ? allRequests : (source === "workshop" ? wsAll : (source === "workshop2" ? ws2All : (source === "teamform" ? teamAll : docsAll)));
     if(!data || data.length === 0){ showToast("لا توجد بيانات للتصدير", true); return; }
     govSource = source;
     genderModal.classList.add("show");
@@ -985,6 +1127,7 @@
 
   document.getElementById("exportGovBtn").addEventListener("click", () => openGenderModal("applicants"));
   document.getElementById("exportWsGovBtn").addEventListener("click", () => openGenderModal("workshop"));
+  document.getElementById("exportWs2GovBtn").addEventListener("click", () => openGenderModal("workshop2"));
   document.getElementById("exportTeamBtn").addEventListener("click", () => openGenderModal("teamform"));
   document.getElementById("exportDocsNamesBtn").addEventListener("click", () => openGenderModal("docsnames"));
   document.getElementById("exportDocsPhotosBtn").addEventListener("click", () => openGenderModal("docsphotos"));
@@ -1012,7 +1155,8 @@
     showToast("جاري تحضير البيانات...");
 
     // جلب كل السجلات (مو المُحمَّل بالقائمة فقط)
-    const full = await fetchAllDocs(source === "applicants" ? VOLUNTEERS_COLLECTION : WORKSHOP_COLLECTION);
+    const srcCol = source === "applicants" ? VOLUNTEERS_COLLECTION : (source === "workshop2" ? WORKSHOP2_COLLECTION : WORKSHOP_COLLECTION);
+    const full = await fetchAllDocs(srcCol);
 
     // تجهيز السجلات (المتقدّمون: إزالة المكرر؛ الورشة: الكل)
     let records;
@@ -1027,7 +1171,7 @@
     }
 
     // استثنِ المشرف (يُثبّت بالأعلى)، واسأل المستخدم عن أي اسم غير معروف الجنس (إلا عند تصدير الكل)
-    const pool = records.filter(r => !(source === "workshop" && isSupervisor(r)));
+    const pool = records.filter(r => !((source === "workshop" || source === "workshop2") && isSupervisor(r)));
     if(gender !== "all"){
       for(const r of pool){
         const first = normName(r.fullName).split(" ")[0] || "";
@@ -1044,8 +1188,8 @@
     // ترتيب أبجدي
     picked.sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
 
-    // تثبيت الطبيب المشرف بأول صف (لتصدير الورشة فقط)
-    if(source === "workshop"){
+    // تثبيت الطبيب المشرف بأول صف (لتصدير الورش فقط)
+    if(source === "workshop" || source === "workshop2"){
       const sup = full.find(isSupervisor);
       if(sup) picked.unshift(sup);
     }
@@ -1073,7 +1217,7 @@
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
     const today = new Date().toISOString().slice(0,10);
-    const srcName = source === "applicants" ? "applicants" : "workshop";
+    const srcName = source === "applicants" ? "applicants" : (source === "workshop2" ? "workshop2" : "workshop");
     const genName = gender==="all" ? "all" : (gender==="female" ? "girls" : "boys");
     XLSX.writeFile(wb, `${srcName}-${genName}-${today}.xlsx`);
 
