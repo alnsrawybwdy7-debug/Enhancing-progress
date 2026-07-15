@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بوابة حضور ورشة 2 | فريق تعزيز التقدم التطوعي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF6EC;--cream-2:#F3EAD8;--pine:#163F33;--pine-2:#1F5142;
+    --leaf:#3E8E6E;--clay:#D9613A;--clay-soft:#E8865F;--ink:#22322B;
+    --muted:#6E7B72;--line:#E0D5BF;--white:#fff;--green:#2E7D5B;--amber:#C98A2B;--red:#C44A36;
+    --shadow:0 18px 40px -22px rgba(22,63,51,.45);--shadow-sm:0 8px 22px -14px rgba(22,63,51,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"IBM Plex Sans Arabic",sans-serif;background:var(--cream);color:var(--ink);line-height:1.7;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;z-index:0;background:
+    radial-gradient(circle at 14% 16%, rgba(62,142,110,.10), transparent 38%),
+    radial-gradient(circle at 86% 84%, rgba(217,97,58,.10), transparent 40%);pointer-events:none}
+
+  /* تسجيل الدخول */
+  .login-screen{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:20px;background:var(--cream)}
+  .login-box{background:#fff;border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow);width:100%;max-width:410px;padding:42px 34px;text-align:center;animation:rise .5s ease both}
+  .login-box .logo{width:60px;height:60px;border-radius:18px;margin:0 auto 20px;background:linear-gradient(135deg,var(--pine),var(--leaf));display:grid;place-items:center;color:#fff;font-size:1.7rem}
+  .login-box h1{font-family:"Reem Kufi",sans-serif;font-size:1.4rem;color:var(--pine);margin-bottom:6px}
+  .login-box .tag{color:var(--muted);font-size:.92rem;margin-bottom:28px}
+  .login-box .field{text-align:right;margin-bottom:16px}
+  .login-box label{display:block;font-weight:600;font-size:.9rem;margin-bottom:7px}
+  .login-box input{width:100%;font-family:inherit;font-size:1rem;background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:13px 15px;transition:.2s}
+  .login-box input:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
+  .login-box button{width:100%;margin-top:8px;font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.05rem;color:#fff;background:linear-gradient(135deg,var(--pine),var(--pine-2));border:none;border-radius:14px;padding:15px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center;gap:9px}
+  .login-box button:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+  .login-box button:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .login-err{color:var(--red);font-size:.88rem;margin-top:14px;min-height:20px;font-weight:500}
+  .spin{width:17px;height:17px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:none}
+  button.loading .spin{display:inline-block}
+
+  /* التطبيق */
+  .app{display:none;position:relative;z-index:1;max-width:640px;margin:0 auto;padding:26px 20px 70px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px}
+  .topbar .brand{display:flex;align-items:center;gap:13px}
+  .topbar .brand .logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--pine),var(--leaf));display:grid;place-items:center;color:#fff;font-size:1.3rem;flex:none}
+  .topbar .brand h1{font-family:"Reem Kufi",sans-serif;font-size:1.2rem;color:var(--pine);line-height:1.2}
+  .topbar .brand p{font-size:.82rem;color:var(--muted)}
+  .nav-links{display:flex;gap:10px;flex-wrap:wrap}
+  .nav-links a,.logout{display:flex;align-items:center;gap:7px;font-family:inherit;font-weight:600;font-size:.88rem;border-radius:11px;padding:10px 16px;cursor:pointer;transition:.2s;text-decoration:none}
+  .nav-links a{color:var(--pine);background:#fff;border:1.5px solid var(--line)}
+  .nav-links a:hover{background:var(--cream-2)}
+  .logout{color:var(--clay);background:#fff;border:1.5px solid var(--line)}
+  .logout:hover{background:var(--clay);color:#fff;border-color:var(--clay)}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:clamp(22px,4vw,36px);animation:rise .6s ease both}
+  .card-head{display:flex;align-items:center;gap:13px;margin-bottom:24px;padding-bottom:20px;border-bottom:2px dashed var(--line)}
+  .card-head .ic{width:46px;height:46px;border-radius:13px;flex:none;background:linear-gradient(135deg,var(--pine),var(--leaf));display:grid;place-items:center;color:#fff;font-size:1.3rem}
+  .card-head h2{font-family:"Reem Kufi",sans-serif;font-size:1.25rem;color:var(--pine)}
+  .card-head p{font-size:.85rem;color:var(--muted)}
+
+  .field{margin-bottom:18px}
+  .field label{display:block;font-weight:600;font-size:.95rem;margin-bottom:8px;color:var(--ink)}
+  .field label b{color:var(--clay)}
+  .field input,.field select{width:100%;font-family:inherit;font-size:1rem;color:var(--ink);background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:13px 16px;transition:.2s}
+  .field input:focus,.field select:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
+
+  /* زر الدفع نعم/لا */
+  .pay-group{display:flex;gap:12px}
+  .pay-opt{flex:1;text-align:center;font-weight:600;font-size:.95rem;background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:13px;cursor:pointer;transition:.2s}
+  .pay-opt:hover{border-color:var(--leaf)}
+  .pay-opt.active-yes{background:var(--green);color:#fff;border-color:var(--green)}
+  .pay-opt.active-no{background:var(--red);color:#fff;border-color:var(--red)}
+  .pay-hint{font-size:.82rem;color:var(--muted);margin-top:8px}
+
+  .submit{width:100%;margin-top:8px;font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.1rem;color:#fff;background:linear-gradient(135deg,var(--clay),var(--clay-soft));border:none;border-radius:15px;padding:16px;cursor:pointer;box-shadow:var(--shadow-sm);transition:.22s;display:flex;align-items:center;justify-content:center;gap:10px}
+  .submit:hover{transform:translateY(-2px)}
+  .submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+  /* نتيجة التسجيل */
+  .result{display:none;margin-top:22px;border-radius:15px;padding:20px;text-align:center;animation:rise .4s ease both}
+  .result.ok{background:#DEF1E7;border:1.5px solid var(--green)}
+  .result.warn{background:#FBF0DA;border:1.5px solid var(--amber)}
+  .result .r-ic{font-size:2.2rem;margin-bottom:8px}
+  .result .r-title{font-family:"Reem Kufi",sans-serif;font-size:1.3rem;margin-bottom:6px}
+  .result.ok .r-title{color:var(--green)}
+  .result.warn .r-title{color:var(--amber)}
+  .result .r-desc{color:var(--ink);font-size:.95rem}
+  .result .r-again{margin-top:16px;font-family:inherit;font-weight:600;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:10px 24px;cursor:pointer}
+
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--pine);color:#fff;padding:14px 24px;border-radius:13px;font-weight:500;box-shadow:0 20px 40px -18px rgba(0,0,0,.5);z-index:60;transition:.4s cubic-bezier(.2,.8,.2,1)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--clay)}
+
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .app-footer{text-align:center;margin-top:40px;color:var(--muted);font-size:.85rem}
+  .app-footer .dev-credit{display:inline-flex;align-items:center;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:.8rem;color:var(--pine-2);font-weight:600;letter-spacing:.2px}
+  .app-footer .dev-credit b{color:var(--pine);font-weight:700}
+  .app-footer .dev-credit .spark{color:var(--leaf)}
+</style>
+</head>
+<body>
+
+<!-- تسجيل الدخول -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="logo">📋</div>
+    <h1>بوابة حضور ورشة 2</h1>
+    <p class="tag">للأدمن فقط — فريق تعزيز التقدم التطوعي</p>
+    <form id="loginForm">
+      <div class="field"><label>البريد الإلكتروني</label><input type="email" id="email" placeholder="admin@email.com" required></div>
+      <div class="field"><label>كلمة المرور</label><input type="password" id="password" placeholder="••••••••" required></div>
+      <button type="submit" id="loginBtn"><span class="spin"></span><span>تسجيل الدخول</span></button>
+    </form>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- التطبيق -->
+<div class="app" id="app">
+  <div class="dedication" style="display:flex;align-items:center;justify-content:center;gap:9px;background:var(--pine);color:#fff;font-size:.9rem;font-weight:600;line-height:1.7;padding:13px 18px;border-radius:14px;text-align:center;margin-bottom:22px;box-shadow:var(--shadow-sm);">
+    <span style="color:#9FE1CB;flex:none;font-size:1.05rem;">✦</span>
+    <span>تم تصميم النظام صدقة جارية على روح والدي <b style="font-weight:700;">عبدالسلام عبدالرضا النصراوي</b></span>
+  </div>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">📋</div>
+      <div>
+        <h1>تسجيل حضور ورشة 2</h1>
+        <p id="adminEmail"></p>
+      </div>
+    </div>
+    <div class="nav-links">
+      <a href="admin.html">↗ لوحة الإدارة</a>
+      <button class="logout" id="logoutBtn">↩ خروج</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="ic">✍️</div>
+      <div>
+        <h2>إدخال بيانات الحاضر</h2>
+        <p>الحقول المؤشرة بـ <b>*</b> إلزامية</p>
+      </div>
+    </div>
+
+    <form id="form">
+      <div class="field">
+        <label>الاسم الكامل <b>*</b></label>
+        <input type="text" id="fullName" placeholder="الاسم الثلاثي" required>
+      </div>
+      <div class="field">
+        <label>رقم الهاتف <b>*</b></label>
+        <input type="tel" id="phone" placeholder="07XXXXXXXXX" inputmode="numeric" required>
+      </div>
+      <div class="field">
+        <label>رقم البطاقة الوطنية <b>*</b></label>
+        <input type="text" id="nationalId" placeholder="رقم البطاقة الوطنية" required>
+      </div>
+      <div class="field">
+        <label>التخصص <b>*</b></label>
+        <input type="text" id="specialty" placeholder="مثال: طب الأسنان" required>
+      </div>
+      <div class="field">
+        <label>الصفة <b>*</b></label>
+        <select id="role" required>
+          <option value="" disabled selected>اختر الصفة</option>
+          <option value="طالب">طالب</option>
+          <option value="متخرج">متخرج</option>
+          <option value="موظف">موظف</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>هل دفع رسوم الاشتراك (10,000 دينار)؟ <b>*</b></label>
+        <div class="pay-group">
+          <div class="pay-opt" data-pay="yes">✓ نعم، دفع</div>
+          <div class="pay-opt" data-pay="no">✕ لم يدفع</div>
+        </div>
+        <div class="pay-hint">اضغط لاختيار حالة الدفع</div>
+      </div>
+
+      <button type="submit" class="submit" id="btn">
+        <span class="spin"></span><span class="btn-txt">حفظ وتسجيل الحضور</span>
+      </button>
+    </form>
+
+    <!-- نتيجة -->
+    <div class="result" id="result">
+      <div class="r-ic" id="rIc"></div>
+      <div class="r-title" id="rTitle"></div>
+      <div class="r-desc" id="rDesc"></div>
+      <button class="r-again" id="rAgain">تسجيل حاضر آخر</button>
+    </div>
+  </div>
+
+  <footer class="app-footer">
+    © فريق تعزيز التقدم التطوعي
+  </footer>
+</div>
+
+<div class="toast" id="toast"><span id="toastTxt"></span></div>
+
+<script type="module">
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP2_COLLECTION } from "./firebase-config.js";
+  import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+  import { collection, addDoc, doc, updateDoc, setDoc, getDocs, query, where, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+  const loginScreen = document.getElementById("loginScreen");
+  const app         = document.getElementById("app");
+  const loginForm   = document.getElementById("loginForm");
+  const loginBtn    = document.getElementById("loginBtn");
+  const loginErr    = document.getElementById("loginErr");
+  const form        = document.getElementById("form");
+  const btn         = document.getElementById("btn");
+  const result      = document.getElementById("result");
+  const toast       = document.getElementById("toast");
+
+  let paid = ""; // yes / no
+
+  // تحويل الأرقام العربية/الفارسية إلى إنجليزية
+  function toEnDigits(s){
+    return String(s||"")
+      .replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660)
+      .replace(/[\u06F0-\u06F9]/g, d => d.charCodeAt(0) - 0x06F0);
+  }
+  // توحيد الاسم العربي: يتجاهل التشكيل و(ة=ه) و(أ إ آ=ا) و(ى=ي)
+  function normName(s){
+    return toEnDigits(s)
+      .replace(/[\u064B-\u0652\u0670]/g,"")
+      .replace(/[أإآ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي")
+      .replace(/ؤ/g,"و").replace(/ئ/g,"ي")
+      .replace(/\s+/g," ").trim().toLowerCase();
+  }
+  // مطابقة الاسم: يكفي الاسم الثلاثي (أحدهما بداية الآخر)
+  function nameMatch(a, b){
+    a = normName(a); b = normName(b);
+    if(!a || !b) return false;
+    return a === b || a.startsWith(b + " ") || b.startsWith(a + " ");
+  }
+
+  function showToast(msg, isErr=false){
+    document.getElementById("toastTxt").textContent = msg;
+    toast.className = "toast show" + (isErr ? " err" : "");
+    setTimeout(() => toast.className = "toast", 3200);
+  }
+
+  // ===== تسجيل الدخول =====
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    loginErr.textContent = "";
+    loginBtn.classList.add("loading"); loginBtn.disabled = true;
+    try{
+      await signInWithEmailAndPassword(auth,
+        document.getElementById("email").value.trim(),
+        document.getElementById("password").value);
+    }catch(err){
+      const map = {
+        "auth/invalid-credential":"البريد أو كلمة المرور غير صحيحة",
+        "auth/invalid-email":"صيغة البريد غير صحيحة",
+        "auth/too-many-requests":"محاولات كثيرة، حاول لاحقاً"
+      };
+      loginErr.textContent = map[err.code] || "فشل تسجيل الدخول";
+    }finally{
+      loginBtn.classList.remove("loading"); loginBtn.disabled = false;
+    }
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    if(user){
+      loginScreen.style.display = "none";
+      app.style.display = "block";
+      document.getElementById("adminEmail").textContent = user.email;
+    }else{
+      app.style.display = "none";
+      loginScreen.style.display = "grid";
+      loginForm.reset();
+    }
+  });
+
+  // ===== اختيار حالة الدفع =====
+  document.querySelectorAll(".pay-opt").forEach(opt => {
+    opt.addEventListener("click", () => {
+      paid = opt.dataset.pay;
+      document.querySelectorAll(".pay-opt").forEach(o => o.classList.remove("active-yes","active-no"));
+      opt.classList.add(paid === "yes" ? "active-yes" : "active-no");
+    });
+  });
+
+  // ===== حفظ الحضور =====
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if(!form.checkValidity()){ showToast("الرجاء تعبئة جميع الحقول", true); form.reportValidity(); return; }
+    if(!paid){ showToast("الرجاء تحديد حالة دفع الرسوم", true); return; }
+
+    btn.classList.add("loading"); btn.disabled = true;
+
+    const fullName   = document.getElementById("fullName").value.trim();
+    const phone      = document.getElementById("phone").value.trim();
+    const nationalId = document.getElementById("nationalId").value.trim();
+    const specialty  = document.getElementById("specialty").value.trim();
+    const role       = document.getElementById("role").value;
+
+    try{
+      // المطابقة: رقم الهاتف + الاسم (مع تجاهل ه/ة و أ/ا، ويكفي الاسم الثلاثي)
+      const q = query(collection(db, VOLUNTEERS_COLLECTION), where("phone", "==", phone));
+      const snap = await getDocs(q);
+      let matchDoc = null;
+      snap.forEach(d => {
+        const data = d.data();
+        if(nameMatch(data.fullName, fullName)) matchDoc = { id:d.id, ...data };
+      });
+
+      const applied = !!matchDoc;
+
+      // حفظ سجل حضور الورشة
+      await addDoc(collection(db, WORKSHOP2_COLLECTION), {
+        fullName, phone, nationalId, specialty, role,
+        paid: paid === "yes",
+        applied,                                  // هل قدّم عبر الرابط؟
+        linkedTicket: matchDoc ? (matchDoc.ticket || "") : "",
+        createdAt: serverTimestamp()
+      });
+
+      // إذا مقدّم سابقاً → قبول تلقائي
+      if(applied){
+        await updateDoc(doc(db, VOLUNTEERS_COLLECTION, matchDoc.id), { status: "accepted" });
+        if(matchDoc.ticket){
+          await setDoc(doc(db, STATUS_COLLECTION, matchDoc.ticket), { status: "accepted" }, { merge:true });
+        }
+        showResult(true, fullName);
+      }else{
+        showResult(false, fullName);
+      }
+    }catch(err){
+      console.error(err);
+      showToast("صار خطأ أثناء الحفظ، حاول مرة ثانية", true);
+      btn.classList.remove("loading"); btn.disabled = false;
+    }
+  });
+
+  function showResult(applied, name){
+    form.style.display = "none";
+    result.style.display = "block";
+    if(applied){
+      result.className = "result ok";
+      document.getElementById("rIc").textContent = "🎉";
+      document.getElementById("rTitle").textContent = "تم القبول تلقائياً";
+      document.getElementById("rDesc").textContent = `${name} مقدّم عبر الرابط — تم تحديث حالته إلى "مقبول" وتسجيل حضوره.`;
+    }else{
+      result.className = "result warn";
+      document.getElementById("rIc").textContent = "⚠️";
+      document.getElementById("rTitle").textContent = "تم الحفظ — غير مقدّم عبر الرابط";
+      document.getElementById("rDesc").textContent = `${name} غير موجود في طلبات الانضمام. تم حفظ حضوره في قسم حضور الورشة فقط.`;
+    }
+  }
+
+  document.getElementById("rAgain").addEventListener("click", () => {
+    form.reset();
+    paid = "";
+    document.querySelectorAll(".pay-opt").forEach(o => o.classList.remove("active-yes","active-no"));
+    result.style.display = "none";
+    form.style.display = "block";
+    btn.classList.remove("loading"); btn.disabled = false;
+  });
+</script>
+</body>
+</html>
