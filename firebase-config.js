@@ -30,6 +30,9 @@ export const STATUS_COLLECTION = "status";
 // مجموعة حضور الورشة (بيانات البوابة — للأدمن فقط)
 export const WORKSHOP_COLLECTION = "workshop";
 
+// مجموعة حضور الورشة الثانية (منفصلة — للأدمن فقط)
+export const WORKSHOP2_COLLECTION = "workshop2";
+
 // مجموعة استمارة أعضاء الفريق (للأدمن فقط)
 export const TEAM_FORM_COLLECTION = "form_team";
 
