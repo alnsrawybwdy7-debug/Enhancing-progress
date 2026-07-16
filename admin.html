@@ -940,6 +940,7 @@
     document.getElementById("editSpecialty").value = r.specialty || "";
     document.getElementById("editRole").value      = r.role || "";
     document.getElementById("editPaid").value      = r.paid ? "yes" : "no";
+    toggleNatIdField(true);
     editModal.classList.add("show");
   };
 
@@ -958,7 +959,10 @@
     if(!fullName || !phone){ showToast("الاسم ورقم الهاتف مطلوبان", true); return; }
     try{
       const targetCol = editWsSource === "workshop2" ? WORKSHOP2_COLLECTION : WORKSHOP_COLLECTION;
-      await updateDoc(doc(db, targetCol, editWsId), { fullName, phone, nationalId, specialty, role, paid });
+      const payload = editWsSource === "workshop2"
+        ? { fullName, phone, specialty, role, paid }
+        : { fullName, phone, nationalId, specialty, role, paid };
+      await updateDoc(doc(db, targetCol, editWsId), payload);
       showToast("تم حفظ التعديلات ✓");
       closeEditModal();
     }catch(err){ console.error(err); showToast("تعذّر حفظ التعديلات", true); }
@@ -1049,7 +1053,6 @@
         <div class="rows">
           <div class="row"><span class="k">الصفة:</span><span class="v">${esc(sr.role||"—")}</span></div>
           <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone)}</span></div>
-          <div class="row"><span class="k">البطاقة الوطنية:</span><span class="v">${esc(r.nationalId||"")}</span></div>
           <div class="row"><span class="k">رسوم الاشتراك:</span><span class="v"><span class="pill ${r.paid ? "paid-yes":"paid-no"}">${r.paid ? "✓ دفع" : "✕ لم يدفع"}</span></span></div>
           ${r.linkedTicket ? `<div class="row"><span class="k">رقم الطلب:</span><span class="v" style="direction:ltr;font-weight:700;color:var(--pine)">${esc(r.linkedTicket)}</span></div>` : ``}
           <div class="row"><span class="k">وقت التسجيل:</span><span class="v">${fmt(r.createdAt)}</span></div>
@@ -1082,8 +1085,19 @@
     document.getElementById("editSpecialty").value = r.specialty || "";
     document.getElementById("editRole").value      = r.role || "";
     document.getElementById("editPaid").value      = r.paid ? "yes" : "no";
+    // بوابة ورشة 2 بدون بطاقة وطنية — أخفِ الحقل
+    toggleNatIdField(false);
     editModal.classList.add("show");
   };
+
+  // إظهار/إخفاء حقل البطاقة الوطنية بنافذة التعديل
+  function toggleNatIdField(show){
+    const inp = document.getElementById("editNatId");
+    if(!inp) return;
+    const lbl = inp.previousElementSibling;
+    inp.style.display = show ? "" : "none";
+    if(lbl && lbl.classList.contains("edit-lbl")) lbl.style.display = show ? "" : "none";
+  }
 
   // ===== تصدير حضور ورشة 2 =====
   document.getElementById("exportWs2Btn").addEventListener("click", async () => {
@@ -1096,13 +1110,13 @@
     const sup0 = full.filter(isSupervisor);
     const rest0 = full.filter(r => !isSupervisor(r)).sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
     const sorted = [...sup0, ...rest0];
-    const header = ["الاسم الكامل","رقم الهاتف","رقم البطاقة الوطنية","التخصص","الصفة","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
+    const header = ["الاسم الكامل","رقم الهاتف","التخصص","الصفة","دفع الرسوم","مقدّم عبر الرابط","رقم الطلب المرتبط","وقت التسجيل"];
     const rows = sorted.map(r => {
       const { specialty, role } = splitRole(r);
-      return [ r.fullName||"", r.phone||"", r.nationalId||"", specialty, role, r.paid?"نعم":"لا", r.applied?"نعم":"لا", r.linkedTicket||"", fmt(r.createdAt) ];
+      return [ r.fullName||"", r.phone||"", specialty, role, r.paid?"نعم":"لا", r.applied?"نعم":"لا", r.linkedTicket||"", fmt(r.createdAt) ];
     });
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-    ws["!cols"] = [{wch:22},{wch:15},{wch:18},{wch:18},{wch:10},{wch:12},{wch:16},{wch:14},{wch:20}];
+    ws["!cols"] = [{wch:22},{wch:15},{wch:18},{wch:10},{wch:12},{wch:16},{wch:14},{wch:20}];
     const wb = XLSX.utils.book_new();
     wb.Workbook = { Views: [{ RTL: true }] };
     XLSX.utils.book_append_sheet(wb, ws, "حضور ورشة 2");
