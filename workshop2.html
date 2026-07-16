@@ -155,10 +155,6 @@
         <input type="tel" id="phone" placeholder="07XXXXXXXXX" inputmode="numeric" required>
       </div>
       <div class="field">
-        <label>رقم البطاقة الوطنية <b>*</b></label>
-        <input type="text" id="nationalId" placeholder="رقم البطاقة الوطنية" required>
-      </div>
-      <div class="field">
         <label>التخصص <b>*</b></label>
         <input type="text" id="specialty" placeholder="مثال: طب الأسنان" required>
       </div>
@@ -301,7 +297,6 @@
 
     const fullName   = document.getElementById("fullName").value.trim();
     const phone      = document.getElementById("phone").value.trim();
-    const nationalId = document.getElementById("nationalId").value.trim();
     const specialty  = document.getElementById("specialty").value.trim();
     const role       = document.getElementById("role").value;
 
@@ -319,7 +314,7 @@
 
       // حفظ سجل حضور الورشة
       await addDoc(collection(db, WORKSHOP2_COLLECTION), {
-        fullName, phone, nationalId, specialty, role,
+        fullName, phone, specialty, role,
         paid: paid === "yes",
         applied,                                  // هل قدّم عبر الرابط؟
         linkedTicket: matchDoc ? (matchDoc.ticket || "") : "",
