@@ -102,7 +102,7 @@
         <input type="tel" id="volNum" inputmode="numeric" placeholder="0" autocomplete="off">
       </div>
 
-      <button class="submit" id="btn">
+      <button class="submit" id="btn" type="button" onclick="doSubmit()">
         <span class="spin"></span><span>✔ تسجيل الحضور</span>
       </button>
     </div>
@@ -170,7 +170,7 @@
     }catch(e){ localStorage.removeItem(STORAGE_KEY); }
   }
 
-  btn.addEventListener("click", async () => {
+  window.doSubmit = async function(){
     hideErr();
     const num = numInput.value.trim().replace(/[^\d]/g, "");
     if(!num){ showErr("الرجاء كتابة رقم تطوّعك"); return; }
@@ -202,9 +202,8 @@
       showErr("صار خطأ أثناء التسجيل، حاول مرة ثانية");
       btn.classList.remove("loading"); btn.disabled = false;
     }
-  });
-
-  numInput.addEventListener("keydown", (e) => { if(e.key === "Enter") btn.click(); });
+  };
+  numInput.addEventListener("keydown", (e) => { if(e.key === "Enter") window.doSubmit(); });
 </script>
 </body>
 </html>
