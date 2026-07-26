@@ -41,6 +41,7 @@
   .field{margin-bottom:18px}
   .field label{display:block;font-weight:600;font-size:.95rem;margin-bottom:8px}
   .field input{width:100%;font-family:inherit;font-size:1.6rem;font-weight:700;text-align:center;color:var(--pine);background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:15px;transition:.2s;letter-spacing:2px}
+  .field select{width:100%;font-family:inherit;font-size:1.15rem;font-weight:600;text-align:center;color:var(--pine);background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:14px;cursor:pointer}
   .field input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 4px rgba(217,97,58,.14)}
 
   .submit{width:100%;font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.15rem;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2));border:none;border-radius:15px;padding:17px;cursor:pointer;box-shadow:var(--shadow-sm);transition:.22s;display:flex;align-items:center;justify-content:center;gap:10px}
@@ -86,9 +87,12 @@
     <div id="formView">
       <div class="icon-top">🔴</div>
 
-      <div class="seg" id="genderSeg">
-        <button type="button" data-g="girls" class="active">👧 بنت</button>
-        <button type="button" data-g="boys">👦 ولد</button>
+      <div class="field">
+        <label>اختر الجنس</label>
+        <select id="genderSel">
+          <option value="girls">👧 بنت</option>
+          <option value="boys">👦 ولد</option>
+        </select>
       </div>
 
       <div class="err-msg" id="errMsg"></div>
@@ -145,15 +149,10 @@
   const numInput = document.getElementById("volNum");
   let gender = "girls";
 
-  // اختيار الجنس
-  document.querySelectorAll("#genderSeg button").forEach(b => {
-    b.addEventListener("click", () => {
-      document.querySelectorAll("#genderSeg button").forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-      gender = b.dataset.g;
-      hideErr();
-    });
-  });
+  // اختيار الجنس من القائمة المنسدلة
+  const genderSel = document.getElementById("genderSel");
+  genderSel.addEventListener("change", () => { gender = genderSel.value; if(typeof hideErr==="function") hideErr(); });
+  gender = genderSel.value;
 
   function showErr(msg){ errMsg.textContent = msg; errMsg.style.display = "block"; }
   function hideErr(){ errMsg.style.display = "none"; }
