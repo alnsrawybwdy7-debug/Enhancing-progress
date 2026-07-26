@@ -145,15 +145,27 @@
   const numInput = document.getElementById("volNum");
   let gender = "girls";
 
-  // اختيار الجنس
-  document.querySelectorAll("#genderSeg button").forEach(b => {
-    b.addEventListener("click", () => {
-      document.querySelectorAll("#genderSeg button").forEach(x => x.classList.remove("active"));
-      b.classList.add("active");
-      gender = b.dataset.g;
-      hideErr();
+  // اختيار الجنس (تفويض الحدث + تلوين مباشر حتى يظهر الاختيار بوضوح على الجوال)
+  const genderSeg = document.getElementById("genderSeg");
+  const ACCENT = "#2E7D5B";
+  function paintGender(activeBtn){
+    genderSeg.querySelectorAll("button").forEach(x => {
+      const on = x === activeBtn;
+      x.classList.toggle("active", on);
+      x.style.background = on ? ACCENT : "transparent";
+      x.style.color = on ? "#fff" : "var(--muted)";
+      x.style.boxShadow = on ? "0 4px 12px -6px rgba(0,0,0,.4)" : "none";
     });
+  }
+  genderSeg.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-g]");
+    if(!b) return;
+    gender = b.dataset.g;
+    paintGender(b);
+    hideErr();
   });
+  // اللون الابتدائي على "بنت"
+  paintGender(genderSeg.querySelector('[data-g="girls"]'));
 
   function showErr(msg){ errMsg.textContent = msg; errMsg.style.display = "block"; }
   function hideErr(){ errMsg.style.display = "none"; }
