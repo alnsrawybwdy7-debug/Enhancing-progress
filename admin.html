@@ -217,6 +217,8 @@
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <a class="ws-link" href="workshop.html">📋 بوابة الحضور</a>
       <a class="ws-link" href="workshop2.html">📋 بوابة ورشة 2</a>
+      <a class="ws-link" href="attend-in.html">🟢 بوابة الحضور</a>
+      <a class="ws-link" href="attend-out.html">🔴 بوابة الانصراف</a>
       <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
     </div>
   </div>
@@ -228,6 +230,7 @@
     <button class="tab" data-tab="workshop2">📋 حضور ورشة 2</button>
     <button class="tab" data-tab="teamform">📝 بيانات الاستمارة</button>
     <button class="tab" data-tab="docsform">🪪 الاستمارة مع المستمسكات</button>
+    <button class="tab" data-tab="attend">🕐 الحضور والانصراف</button>
   </div>
 
   <!-- شاشة اختيار القسم (تظهر أولاً — لا تُحمّل أي بيانات) -->
@@ -242,6 +245,7 @@
         <button class="chooser-btn" onclick="selectSection('workshop2')"><span>📋</span> حضور ورشة 2</button>
         <button class="chooser-btn" onclick="selectSection('teamform')"><span>📝</span> بيانات الاستمارة</button>
         <button class="chooser-btn" onclick="selectSection('docsform')"><span>🪪</span> الاستمارة مع المستمسكات</button>
+        <button class="chooser-btn" onclick="selectSection('attend')"><span>🕐</span> الحضور والانصراف</button>
       </div>
     </div>
   </section>
@@ -365,6 +369,39 @@
     <div class="list" id="dfList"></div>
   </section>
 
+  <!-- قسم الحضور والانصراف -->
+  <section id="sec-attend" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">الحضور والانصراف</h2>
+      <div class="export-group">
+        <button class="export-btn" id="exportAttendBtn">📊 تصدير Excel</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat acc"><div class="num" id="atIn">0</div><div class="lbl">سجّلوا الحضور</div></div>
+      <div class="stat rej"><div class="num" id="atOut">0</div><div class="lbl">سجّلوا الانصراف</div></div>
+      <div class="stat pend"><div class="num" id="atStill">0</div><div class="lbl">لم ينصرفوا بعد</div></div>
+      <div class="stat all"><div class="num" id="atGirls">0</div><div class="lbl">حاضرات (بنات)</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <label style="font-weight:600;font-size:.9rem;color:var(--pine)">📅 اليوم:</label>
+      <select id="atDay" style="flex:1;min-width:160px;font-family:inherit;font-size:.95rem;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:11px 14px;cursor:pointer"></select>
+    </div>
+
+    <div class="seg-tabs" style="display:flex;gap:8px;margin-bottom:16px;background:var(--cream-2);border-radius:12px;padding:5px">
+      <button class="seg-tab active" data-at="in" style="flex:1;font-family:inherit;font-weight:600;border:none;border-radius:9px;padding:10px;cursor:pointer;background:#fff;color:var(--pine)">🟢 الحضور</button>
+      <button class="seg-tab" data-at="out" style="flex:1;font-family:inherit;font-weight:600;border:none;border-radius:9px;padding:10px;cursor:pointer;background:none;color:var(--muted)">🔴 الانصراف</button>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="atSearch" placeholder="🔍 بحث بالاسم أو الرقم...">
+    </div>
+
+    <div class="list" id="atList"></div>
+  </section>
+
   <footer class="app-footer">
     © فريق تعزيز التقدم التطوعي
   </footer>
@@ -430,7 +467,7 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION, ATTEND_IN_COLLECTION, ATTEND_OUT_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
   import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc, limit, getDocs, getCountFromServer, where, getDoc }
@@ -455,6 +492,9 @@
   let teamUnsub = null;   // لإيقاف استماع الاستمارة
   let docsAll = [];       // الاستمارة مع المستمسكات (يتحدث لحظياً)
   let docsUnsub = null;   // لإيقاف استماع المستمسكات
+  let attendInAll = [], attendOutAll = [];   // الحضور والانصراف
+  let attendInUnsub = null, attendOutUnsub = null;
+  let attendView = "in";  // العرض الحالي: حضور أو انصراف
 
   // تكبير صورة الهوية عند الضغط عليها
   const lightbox    = document.getElementById("lightbox");
@@ -525,13 +565,15 @@
     if(ws2Unsub){ ws2Unsub(); ws2Unsub = null; }
     if(teamUnsub){ teamUnsub(); teamUnsub = null; }
     if(docsUnsub){ docsUnsub(); docsUnsub = null; }
+    if(attendInUnsub){ attendInUnsub(); attendInUnsub = null; }
+    if(attendOutUnsub){ attendOutUnsub(); attendOutUnsub = null; }
   }
 
   // إظهار شاشة اختيار القسم (بدون تحميل أي بيانات)
   function showChooser(){
     stopAllListeners();
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "block";
@@ -824,12 +866,12 @@
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === which));
     // أخفِ شاشة الاختيار وكل الأقسام
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "none";
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     // أوقف كل المستمعين وفرّغ الذاكرة (حتى يبقى خفيفاً)
     stopAllListeners();
-    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = [];
+    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = []; attendInAll = []; attendOutAll = [];
 
     // اعرض القسم المختار وحمّله وحده
     const sec = document.getElementById("sec-" + which);
@@ -839,6 +881,7 @@
     else if(which === "workshop2"){ startWorkshop2Listening(); }
     else if(which === "teamform"){ startTeamListening(); }
     else if(which === "docsform"){ startDocsListening(); }
+    else if(which === "attend"){ startAttendListening(); }
   };
 
   document.querySelectorAll(".tab").forEach(tab => {
@@ -1585,6 +1628,154 @@
     await saveDocsWb(wb, gender, "docs-photos");
     showToast(`تم تصدير مستمسكات ${picked.length} ${gender==="all" ? "(الكل)" : (gender==="female"?"بنت":"ولد")} ✓`);
   }
+
+  // ===== 16) الحضور والانصراف =====
+  function startAttendListening(){
+    refreshDayOptions(); // أظهر اليوم الحالي فوراً قبل وصول البيانات
+    const qi = query(collection(db, ATTEND_IN_COLLECTION), orderBy("createdAt","desc"));
+    attendInUnsub = onSnapshot(qi, (snap) => {
+      attendInAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateAttendStats(); renderAttend();
+    }, (err) => { console.error(err); });
+    const qo = query(collection(db, ATTEND_OUT_COLLECTION), orderBy("createdAt","desc"));
+    attendOutUnsub = onSnapshot(qo, (snap) => {
+      attendOutAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateAttendStats(); renderAttend();
+    }, (err) => { console.error(err); });
+  }
+
+  function todayStr(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  function currentDay(){ const s = document.getElementById("atDay"); return s ? s.value : todayStr(); }
+
+  // بناء قائمة الأيام المتوفرة (من سجلات الحضور والانصراف)
+  function refreshDayOptions(){
+    const sel = document.getElementById("atDay");
+    if(!sel) return;
+    const days = new Set();
+    attendInAll.forEach(r => r.day && days.add(r.day));
+    attendOutAll.forEach(r => r.day && days.add(r.day));
+    days.add(todayStr()); // اليوم الحالي دائماً موجود
+    const sorted = [...days].sort().reverse(); // الأحدث أولاً
+    const prev = sel.value;
+    sel.innerHTML = sorted.map(d => {
+      const label = d === todayStr() ? `${d} (اليوم)` : d;
+      return `<option value="${d}">${label}</option>`;
+    }).join("");
+    // حافظ على الاختيار السابق أو اختر اليوم
+    if(prev && sorted.includes(prev)) sel.value = prev;
+    else sel.value = todayStr();
+  }
+
+  function updateAttendStats(){
+    const day = currentDay();
+    const inDay  = attendInAll.filter(r => r.day === day);
+    const outDay = attendOutAll.filter(r => r.day === day);
+    const outKeys = new Set(outDay.map(r => `${r.gender}-${r.number}`));
+    const still = inDay.filter(r => !outKeys.has(`${r.gender}-${r.number}`)).length;
+    document.getElementById("atIn").textContent    = inDay.length;
+    document.getElementById("atOut").textContent   = outDay.length;
+    document.getElementById("atStill").textContent = still;
+    document.getElementById("atGirls").textContent = inDay.filter(r => r.gender === "girls").length;
+  }
+
+  document.getElementById("atDay").addEventListener("change", () => { updateAttendStats(); renderAttend(); });
+
+  // تبديل بين عرض الحضور والانصراف
+  document.querySelectorAll(".seg-tab").forEach(t => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".seg-tab").forEach(x => { x.classList.remove("active"); x.style.background="none"; x.style.color="var(--muted)"; });
+      t.classList.add("active"); t.style.background="#fff"; t.style.color="var(--pine)";
+      attendView = t.dataset.at;
+      renderAttend();
+    });
+  });
+
+  document.getElementById("atSearch").addEventListener("input", renderAttend);
+
+  function renderAttend(){
+    refreshDayOptions();
+    const day = currentDay();
+    const term = document.getElementById("atSearch").value.trim().toLowerCase();
+    const el = document.getElementById("atList");
+    const data = (attendView === "in" ? attendInAll : attendOutAll).filter(r => r.day === day);
+    const outKeys = new Set(attendOutAll.filter(r => r.day === day).map(r => `${r.gender}-${r.number}`));
+
+    const filtered = data.filter(r =>
+      !term || (r.name||"").toLowerCase().includes(term) || String(r.number||"").includes(term)
+    ).sort((a,b) => {
+      if(a.gender !== b.gender) return a.gender === "girls" ? -1 : 1;
+      return (a.number||0) - (b.number||0);
+    });
+
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="empty"><div class="e-ic">🕐</div><h3>لا يوجد تسجيل</h3><p>${data.length===0 ? (attendView==="in"?"لم يسجّل أحد الحضور بهذا اليوم":"لم يسجّل أحد الانصراف بهذا اليوم") : "لا توجد نتائج"}</p></div>`;
+      return;
+    }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+
+    el.innerHTML = filtered.map(r => {
+      const left = attendView === "in" && outKeys.has(`${r.gender}-${r.number}`);
+      return `
+      <div class="req">
+        <div class="r-top">
+          <div>
+            <div class="r-name">${esc(r.name)}</div>
+            <div class="r-gov">رقم ${esc(String(r.number||""))} • ${r.gender==="girls"?"بنت 👧":"ولد 👦"}</div>
+          </div>
+          <span class="pill ${attendView==="in" ? "applied-yes":"paid-no"}">${attendView==="in" ? "🟢 حاضر" : "🔴 منصرف"}</span>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">${attendView==="in"?"وقت الحضور":"وقت الانصراف"}:</span><span class="v">${fmt(r.createdAt)}</span></div>
+          ${left ? `<div class="row"><span class="k">الحالة:</span><span class="v"><span class="pill paid-no">انصرف</span></span></div>` : ``}
+        </div>
+        <div class="actions">
+          <button class="b-del" style="flex:1;width:auto" onclick="removeAttend('${attendView}','${r.id}','${esc(r.name)}')">🗑 حذف</button>
+        </div>
+      </div>`;
+    }).join("");
+  }
+
+  window.removeAttend = async (which, id, name) => {
+    if(!confirm(`حذف تسجيل "${name}"؟`)) return;
+    try{
+      await deleteDoc(doc(db, which === "in" ? ATTEND_IN_COLLECTION : ATTEND_OUT_COLLECTION, id));
+      showToast("تم الحذف");
+    }catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
+  };
+
+  // تصدير الحضور والانصراف بجدول واحد (اسم + رقم + وقت الحضور + وقت الانصراف)
+  document.getElementById("exportAttendBtn").addEventListener("click", () => {
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    const day = currentDay();
+    const inDay  = attendInAll.filter(r => r.day === day);
+    const outDay = attendOutAll.filter(r => r.day === day);
+    if(inDay.length === 0 && outDay.length === 0){ showToast("لا توجد بيانات بهذا اليوم", true); return; }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+
+    const outMap = new Map(outDay.map(r => [`${r.gender}-${r.number}`, r]));
+    const inMap  = new Map(inDay.map(r => [`${r.gender}-${r.number}`, r]));
+    const keys = new Set([...inMap.keys(), ...outMap.keys()]);
+    const recs = [...keys].map(k => {
+      const i = inMap.get(k), o = outMap.get(k);
+      const base = i || o;
+      return { name: base.name, number: base.number, gender: base.gender,
+               inTime: i ? fmt(i.createdAt) : "", outTime: o ? fmt(o.createdAt) : "" };
+    }).sort((a,b) => (a.gender !== b.gender) ? (a.gender==="girls"?-1:1) : (a.number-b.number));
+
+    const header = ["ت","الاسم","رقم التطوع","الجنس","وقت الحضور","وقت الانصراف","الحالة"];
+    const rows = recs.map((r,idx) => [ idx+1, r.name, r.number, r.gender==="girls"?"بنت":"ولد", r.inTime, r.outTime,
+      (r.inTime && r.outTime) ? "حضر وانصرف" : (r.inTime ? "لم ينصرف" : "انصراف بدون حضور") ]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:5},{wch:28},{wch:12},{wch:8},{wch:22},{wch:22},{wch:18}];
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
+    XLSX.utils.book_append_sheet(wb, ws, day);
+    XLSX.writeFile(wb, `attendance-${day}.xlsx`);
+    showToast(`تم تصدير ${recs.length} سجل ليوم ${day} ✓`);
+  });
 </script>
 </body>
 </html>
