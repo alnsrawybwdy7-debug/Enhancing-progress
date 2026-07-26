@@ -1,1 +1,211 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الحضور | فريق تعزيز التقدم التطوعي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF6EC;--cream-2:#F3EAD8;--pine:#163F33;--pine-2:#1F5142;
+    --leaf:#3E8E6E;--clay:#D9613A;--clay-soft:#E8865F;--ink:#22322B;
+    --muted:#6E7B72;--line:#E0D5BF;--white:#fff;--green:#2E7D5B;--red:#C44A36;
+    --accent:#2E7D5B;--accent-2:#3E8E6E;
+    --shadow:0 18px 40px -22px rgba(22,63,51,.45);--shadow-sm:0 8px 22px -14px rgba(22,63,51,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"IBM Plex Sans Arabic",sans-serif;background:var(--cream);color:var(--ink);line-height:1.7;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
+  body::before{content:"";position:fixed;inset:0;z-index:0;background:
+    radial-gradient(circle at 15% 15%, rgba(46,125,91,.12), transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(62,142,110,.10), transparent 42%);pointer-events:none}
+  .wrap{position:relative;z-index:1;width:100%;max-width:460px}
 
+  .dedication{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--pine);color:#fff;font-size:.85rem;font-weight:600;line-height:1.7;padding:12px 16px;border-radius:14px;text-align:center;margin-bottom:18px;box-shadow:var(--shadow-sm)}
+  .dedication .spark{color:#9FE1CB;flex:none}
+
+  header{text-align:center;margin-bottom:22px}
+  header .badge{display:inline-flex;align-items:center;gap:8px;background:var(--cream-2);border:1px solid var(--line);color:var(--pine);font-weight:600;font-size:.82rem;padding:6px 15px;border-radius:999px;margin-bottom:14px}
+  header .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+  header h1{font-family:"Reem Kufi",sans-serif;font-size:clamp(1.5rem,5vw,2rem);color:var(--pine);line-height:1.25}
+  header h1 span{color:var(--accent)}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:clamp(24px,5vw,34px);animation:rise .5s ease both}
+  .icon-top{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:grid;place-items:center;margin:0 auto 18px;font-size:1.9rem;box-shadow:0 10px 24px -10px rgba(46,125,91,.6)}
+
+  .seg{display:flex;gap:8px;margin-bottom:20px;background:var(--cream);border-radius:13px;padding:5px}
+  .seg button{flex:1;font-family:inherit;font-weight:600;font-size:.98rem;color:var(--muted);background:none;border:none;border-radius:9px;padding:11px;cursor:pointer;transition:.2s}
+  .seg button.active{background:#fff;color:var(--pine);box-shadow:var(--shadow-sm)}
+
+  .field{margin-bottom:18px}
+  .field label{display:block;font-weight:600;font-size:.95rem;margin-bottom:8px}
+  .field input{width:100%;font-family:inherit;font-size:1.6rem;font-weight:700;text-align:center;color:var(--pine);background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:15px;transition:.2s;letter-spacing:2px}
+  .field input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 4px rgba(46,125,91,.14)}
+
+  .submit{width:100%;font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.15rem;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2));border:none;border-radius:15px;padding:17px;cursor:pointer;box-shadow:var(--shadow-sm);transition:.22s;display:flex;align-items:center;justify-content:center;gap:10px}
+  .submit:hover{transform:translateY(-2px)}
+  .submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .spin{width:19px;height:19px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:none}
+  .submit.loading .spin{display:inline-block}
+
+  .result{display:none;text-align:center;animation:pop .5s ease both}
+  .result .big{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;font-size:2.6rem}
+  .result.ok .big{background:#DEF1E7}
+  .result.warn .big{background:#FCEEE9}
+  .result h2{font-family:"Reem Kufi",sans-serif;font-size:1.5rem;margin-bottom:8px}
+  .result.ok h2{color:var(--green)}
+  .result.warn h2{color:var(--clay)}
+  .result .vname{font-size:1.35rem;font-weight:700;color:var(--pine);background:var(--cream);border:1.5px dashed var(--line);border-radius:13px;padding:14px;margin:16px 0}
+  .result .time{color:var(--muted);font-size:.9rem}
+  .result .redo{margin-top:22px;font-family:inherit;font-weight:600;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 26px;cursor:pointer}
+
+  .err-msg{background:#FCEEE9;color:var(--clay);border:1px solid #F1C9BC;border-radius:12px;padding:12px 15px;font-size:.9rem;font-weight:500;margin-bottom:16px;display:none}
+
+  footer{text-align:center;margin-top:22px;color:var(--muted);font-size:.82rem}
+
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="dedication">
+    <span class="spark">✦</span>
+    <span>صدقة جارية على روح والدي <b style="font-weight:700;">عبدالسلام عبدالرضا النصراوي</b></span>
+  </div>
+
+  <header>
+    <span class="badge"><span class="dot"></span> فريق تعزيز التقدم التطوعي</span>
+    <h1>تسجيل <span>الحضور</span></h1>
+  </header>
+
+  <div class="card">
+    <div id="formView">
+      <div class="icon-top">🟢</div>
+
+      <div class="seg" id="genderSeg">
+        <button type="button" data-g="girls" class="active">👧 بنت</button>
+        <button type="button" data-g="boys">👦 ولد</button>
+      </div>
+
+      <div class="err-msg" id="errMsg"></div>
+
+      <div class="field">
+        <label>اكتب رقم تطوّعك</label>
+        <input type="tel" id="volNum" inputmode="numeric" placeholder="0" autocomplete="off">
+      </div>
+
+      <button class="submit" id="btn">
+        <span class="spin"></span><span>✔ تسجيل الحضور</span>
+      </button>
+    </div>
+
+    <div class="result ok" id="okView">
+      <div class="big">✓</div>
+      <h2>تم تسجيل حضورك</h2>
+      <div class="vname" id="okName"></div>
+      <div class="time" id="okTime"></div>
+      <div style="margin-top:16px;color:var(--muted);font-size:.85rem">أهلاً بك، نتمنى لك يوماً موفقاً 🌱</div>
+    </div>
+
+    <div class="result warn" id="dupView">
+      <div class="big">⚠️</div>
+      <h2>سجّلت حضورك مسبقاً</h2>
+      <div class="vname" id="dupName"></div>
+      <div class="time" id="dupTime"></div>
+      <div style="margin-top:16px;color:var(--muted);font-size:.85rem">تم تسجيل حضورك من هذا الجهاز سابقاً</div>
+    </div>
+  </div>
+
+  <footer>© فريق تعزيز التقدم التطوعي</footer>
+</div>
+
+<script type="module">
+  import { db, ATTEND_IN_COLLECTION } from "./firebase-config.js";
+  import { lookupVolunteer } from "./roster.js";
+  import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+  // تاريخ اليوم المحلي (يتصفّر تلقائياً بعد منتصف الليل)
+  function todayStr(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  const DAY = todayStr();
+  const STORAGE_KEY = "attend_in_done_" + DAY; // منع التكرار لكل جهاز — لهذا اليوم فقط
+  const MODE = "in";
+
+  const formView = document.getElementById("formView");
+  const okView   = document.getElementById("okView");
+  const dupView  = document.getElementById("dupView");
+  const btn      = document.getElementById("btn");
+  const errMsg   = document.getElementById("errMsg");
+  const numInput = document.getElementById("volNum");
+  let gender = "girls";
+
+  // اختيار الجنس
+  document.querySelectorAll("#genderSeg button").forEach(b => {
+    b.addEventListener("click", () => {
+      document.querySelectorAll("#genderSeg button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      gender = b.dataset.g;
+      hideErr();
+    });
+  });
+
+  function showErr(msg){ errMsg.textContent = msg; errMsg.style.display = "block"; }
+  function hideErr(){ errMsg.style.display = "none"; }
+  function fmtTime(d){ try{ return d.toLocaleString("ar-IQ"); }catch(e){ return ""; } }
+
+  // إن كان هذا الجهاز سجّل مسبقاً → أظهر شاشة "سجّلت مسبقاً"
+  const prev = localStorage.getItem(STORAGE_KEY);
+  if(prev){
+    try{
+      const p = JSON.parse(prev);
+      formView.style.display = "none";
+      document.getElementById("dupName").textContent = p.name || "";
+      document.getElementById("dupTime").textContent = p.time ? ("وقت التسجيل: " + p.time) : "";
+      dupView.style.display = "block";
+    }catch(e){ localStorage.removeItem(STORAGE_KEY); }
+  }
+
+  btn.addEventListener("click", async () => {
+    hideErr();
+    const num = numInput.value.trim().replace(/[^\d]/g, "");
+    if(!num){ showErr("الرجاء كتابة رقم تطوّعك"); return; }
+
+    const name = lookupVolunteer(gender, num);
+    if(!name){ showErr(`الرقم ${num} غير موجود في قائمة ${gender==="girls"?"البنات":"الولد"}. تأكد من الرقم والجنس.`); return; }
+
+    btn.classList.add("loading"); btn.disabled = true;
+    try{
+      const now = new Date();
+      // معرّف يشمل اليوم حتى ينفصل كل يوم عن الآخر
+      await setDoc(doc(db, ATTEND_IN_COLLECTION, `${DAY}_${gender}-${num}`), {
+        number: parseInt(num,10),
+        gender,
+        name,
+        day: DAY,
+        createdAt: serverTimestamp()
+      }, { merge: true });
+
+      const timeStr = fmtTime(now);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ name, time: timeStr }));
+
+      formView.style.display = "none";
+      document.getElementById("okName").textContent = name;
+      document.getElementById("okTime").textContent = "وقت التسجيل: " + timeStr;
+      okView.style.display = "block";
+    }catch(err){
+      console.error(err);
+      showErr("صار خطأ أثناء التسجيل، حاول مرة ثانية");
+      btn.classList.remove("loading"); btn.disabled = false;
+    }
+  });
+
+  numInput.addEventListener("keydown", (e) => { if(e.key === "Enter") btn.click(); });
+</script>
+</body>
+</html>
