@@ -42,3 +42,6 @@ export const DOCS_FORM_COLLECTION = "form_docs";
 // مجموعتا الحضور والانصراف (تسجيل عبر الباركود)
 export const ATTEND_IN_COLLECTION = "attend_in";
 export const ATTEND_OUT_COLLECTION = "attend_out";
+
+// مجموعة المشاركة بالمفرزة (تسجيل عبر الرابط)
+export const SQUAD_COLLECTION = "squad";
