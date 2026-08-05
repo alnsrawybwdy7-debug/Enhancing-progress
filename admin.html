@@ -219,6 +219,7 @@
       <a class="ws-link" href="workshop2.html">📋 بوابة ورشة 2</a>
       <a class="ws-link" href="attend-in.html">🟢 بوابة الحضور</a>
       <a class="ws-link" href="attend-out.html">🔴 بوابة الانصراف</a>
+      <a class="ws-link" href="squad.html">🤝 بوابة المفرزة</a>
       <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
     </div>
   </div>
@@ -231,6 +232,7 @@
     <button class="tab" data-tab="teamform">📝 بيانات الاستمارة</button>
     <button class="tab" data-tab="docsform">🪪 الاستمارة مع المستمسكات</button>
     <button class="tab" data-tab="attend">🕐 الحضور والانصراف</button>
+    <button class="tab" data-tab="squad">🤝 المفرزة</button>
   </div>
 
   <!-- شاشة اختيار القسم (تظهر أولاً — لا تُحمّل أي بيانات) -->
@@ -246,6 +248,7 @@
         <button class="chooser-btn" onclick="selectSection('teamform')"><span>📝</span> بيانات الاستمارة</button>
         <button class="chooser-btn" onclick="selectSection('docsform')"><span>🪪</span> الاستمارة مع المستمسكات</button>
         <button class="chooser-btn" onclick="selectSection('attend')"><span>🕐</span> الحضور والانصراف</button>
+        <button class="chooser-btn" onclick="selectSection('squad')"><span>🤝</span> المفرزة</button>
       </div>
     </div>
   </section>
@@ -402,6 +405,27 @@
     <div class="list" id="atList"></div>
   </section>
 
+  <!-- قسم المفرزة -->
+  <section id="sec-squad" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">المشاركون في المفرزة</h2>
+      <button class="export-btn" id="exportSquadBtn">📊 تصدير Excel</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat all"><div class="num" id="sqAll">0</div><div class="lbl">إجمالي المشاركين</div></div>
+      <div class="stat acc"><div class="num" id="sqStudents">0</div><div class="lbl">طلاب</div></div>
+      <div class="stat pend"><div class="num" id="sqEmployees">0</div><div class="lbl">موظفون</div></div>
+      <div class="stat rej"><div class="num" id="sqGrads">0</div><div class="lbl">خريجون</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="sqSearch" placeholder="🔍 بحث بالاسم، الصفة، مكان الدوام...">
+    </div>
+
+    <div class="list" id="sqList"></div>
+  </section>
+
   <footer class="app-footer">
     © فريق تعزيز التقدم التطوعي
   </footer>
@@ -467,7 +491,7 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION, ATTEND_IN_COLLECTION, ATTEND_OUT_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION, ATTEND_IN_COLLECTION, ATTEND_OUT_COLLECTION, SQUAD_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
   import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc, limit, getDocs, getCountFromServer, where, getDoc }
@@ -495,6 +519,8 @@
   let attendInAll = [], attendOutAll = [];   // الحضور والانصراف
   let attendInUnsub = null, attendOutUnsub = null;
   let attendView = "in";  // العرض الحالي: حضور أو انصراف
+  let squadAll = [];      // المفرزة
+  let squadUnsub = null;
 
   // تكبير صورة الهوية عند الضغط عليها
   const lightbox    = document.getElementById("lightbox");
@@ -567,13 +593,14 @@
     if(docsUnsub){ docsUnsub(); docsUnsub = null; }
     if(attendInUnsub){ attendInUnsub(); attendInUnsub = null; }
     if(attendOutUnsub){ attendOutUnsub(); attendOutUnsub = null; }
+    if(squadUnsub){ squadUnsub(); squadUnsub = null; }
   }
 
   // إظهار شاشة اختيار القسم (بدون تحميل أي بيانات)
   function showChooser(){
     stopAllListeners();
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "block";
@@ -866,12 +893,12 @@
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === which));
     // أخفِ شاشة الاختيار وكل الأقسام
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "none";
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     // أوقف كل المستمعين وفرّغ الذاكرة (حتى يبقى خفيفاً)
     stopAllListeners();
-    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = []; attendInAll = []; attendOutAll = [];
+    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = []; attendInAll = []; attendOutAll = []; squadAll = [];
 
     // اعرض القسم المختار وحمّله وحده
     const sec = document.getElementById("sec-" + which);
@@ -882,6 +909,7 @@
     else if(which === "teamform"){ startTeamListening(); }
     else if(which === "docsform"){ startDocsListening(); }
     else if(which === "attend"){ startAttendListening(); }
+    else if(which === "squad"){ startSquadListening(); }
   };
 
   document.querySelectorAll(".tab").forEach(tab => {
@@ -1775,6 +1803,84 @@
     XLSX.utils.book_append_sheet(wb, ws, day);
     XLSX.writeFile(wb, `attendance-${day}.xlsx`);
     showToast(`تم تصدير ${recs.length} سجل ليوم ${day} ✓`);
+  });
+
+  // ===== 17) المفرزة =====
+  function startSquadListening(){
+    const q = query(collection(db, SQUAD_COLLECTION), orderBy("createdAt","desc"));
+    squadUnsub = onSnapshot(q, (snap) => {
+      squadAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateSquadStats();
+      renderSquad();
+    }, (err) => { console.error(err); });
+  }
+
+  function updateSquadStats(){
+    document.getElementById("sqAll").textContent       = squadAll.length;
+    document.getElementById("sqStudents").textContent  = squadAll.filter(r => r.role === "طالب").length;
+    document.getElementById("sqEmployees").textContent = squadAll.filter(r => r.role === "موظف").length;
+    document.getElementById("sqGrads").textContent     = squadAll.filter(r => r.role === "خريج").length;
+  }
+
+  document.getElementById("sqSearch").addEventListener("input", renderSquad);
+
+  function renderSquad(){
+    const term = document.getElementById("sqSearch").value.trim().toLowerCase();
+    const el = document.getElementById("sqList");
+    const filtered = squadAll.filter(r =>
+      !term ||
+      (r.fullName||"").toLowerCase().includes(term) ||
+      (r.role||"").toLowerCase().includes(term) ||
+      (r.place||"").toLowerCase().includes(term)
+    );
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="empty"><div class="e-ic">🤝</div><h3>لا يوجد مشاركون</h3><p>${squadAll.length===0 ? "لم يسجّل أحد بعد" : "لا توجد نتائج مطابقة"}</p></div>`;
+      return;
+    }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    const placeLabel = (r) => r.role === "طالب" ? "الجامعة/الكلية" : (r.role === "موظف" ? "جهة العمل" : "");
+
+    el.innerHTML = filtered.map(r => `
+      <div class="req">
+        <div class="r-top">
+          <div>
+            <div class="r-name">${esc(r.fullName)}</div>
+            <div class="r-gov">${esc(r.role||"")}</div>
+          </div>
+          <span class="pill applied-yes">${esc(r.role||"")}</span>
+        </div>
+        <div class="rows">
+          ${r.place ? `<div class="row"><span class="k">${placeLabel(r)}:</span><span class="v">${esc(r.place)}</span></div>` : ``}
+          <div class="row"><span class="k">وقت التسجيل:</span><span class="v">${fmt(r.createdAt)}</span></div>
+        </div>
+        <div class="actions">
+          <button class="b-del" style="flex:1;width:auto" onclick="removeSquad('${r.id}','${esc(r.fullName)}')">🗑 حذف</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  window.removeSquad = async (id, name) => {
+    if(!confirm(`حذف مشاركة "${name}"؟`)) return;
+    try{ await deleteDoc(doc(db, SQUAD_COLLECTION, id)); showToast("تم الحذف"); }
+    catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
+  };
+
+  document.getElementById("exportSquadBtn").addEventListener("click", () => {
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    if(squadAll.length === 0){ showToast("لا يوجد مشاركون للتصدير", true); return; }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    const sorted = [...squadAll].sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    const header = ["ت","الاسم الكامل","الصفة","مكان الدوام (الجامعة/جهة العمل)","وقت التسجيل"];
+    const rows = sorted.map((r,i) => [ i+1, r.fullName||"", r.role||"", r.place||"", fmt(r.createdAt) ]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:5},{wch:26},{wch:12},{wch:30},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
+    XLSX.utils.book_append_sheet(wb, ws, "المفرزة");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `squad-${today}.xlsx`);
+    showToast(`تم تصدير ${sorted.length} مشارك ✓`);
   });
 </script>
 </body>
