@@ -119,6 +119,12 @@
         <input type="text" id="work" placeholder="اسم جهة العمل">
       </div>
 
+      <!-- حقل الخريج -->
+      <div class="field hidden" id="gradField">
+        <label>الجامعة التي تخرّجت منها <b>*</b></label>
+        <input type="text" id="grad" placeholder="اسم الجامعة التي تخرّجت منها">
+      </div>
+
       <button type="submit" class="submit" id="btn">
         <span class="spin"></span><span>إرسال المشاركة</span>
       </button>
@@ -151,8 +157,10 @@
   const roleSel  = document.getElementById("role");
   const uniField = document.getElementById("uniField");
   const workField= document.getElementById("workField");
+  const gradField= document.getElementById("gradField");
   const uniInput = document.getElementById("uni");
   const workInput= document.getElementById("work");
+  const gradInput= document.getElementById("grad");
 
   function showToast(msg, isErr=false){
     document.getElementById("toast-txt").textContent = msg;
@@ -165,10 +173,13 @@
     const v = roleSel.value;
     uniField.classList.toggle("hidden", v !== "طالب");
     workField.classList.toggle("hidden", v !== "موظف");
+    gradField.classList.toggle("hidden", v !== "خريج");
     uniInput.required  = (v === "طالب");
     workInput.required = (v === "موظف");
+    gradInput.required = (v === "خريج");
     if(v !== "طالب") uniInput.value = "";
     if(v !== "موظف") workInput.value = "";
+    if(v !== "خريج") gradInput.value = "";
   });
 
   form.addEventListener("submit", async (e) => {
@@ -176,14 +187,16 @@
     if(!form.checkValidity()){ showToast("الرجاء تعبئة جميع الحقول الإلزامية", true); form.reportValidity(); return; }
 
     const role = roleSel.value;
-    const place = role === "طالب" ? uniInput.value.trim() : (role === "موظف" ? workInput.value.trim() : "");
+    const place = role === "طالب" ? uniInput.value.trim()
+                : role === "موظف" ? workInput.value.trim()
+                : role === "خريج" ? gradInput.value.trim() : "";
 
     btn.classList.add("loading"); btn.disabled = true;
     try{
       await addDoc(collection(db, SQUAD_COLLECTION), {
         fullName: document.getElementById("fullName").value.trim(),
         role,
-        place,                    // الجامعة أو جهة العمل (فارغ للخريج)
+        place,                    // الجامعة (طالب/خريج) أو جهة العمل (موظف)
         createdAt: serverTimestamp()
       });
       card.style.display = "none";
@@ -200,6 +213,7 @@
     form.reset();
     uniField.classList.add("hidden");
     workField.classList.add("hidden");
+    gradField.classList.add("hidden");
     doneCard.style.display = "none";
     card.style.display = "block";
     btn.classList.remove("loading"); btn.disabled = false;
