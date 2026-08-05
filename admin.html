@@ -1838,7 +1838,7 @@
       return;
     }
     const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
-    const placeLabel = (r) => r.role === "طالب" ? "الجامعة/الكلية" : (r.role === "موظف" ? "جهة العمل" : "");
+    const placeLabel = (r) => r.role === "طالب" ? "الجامعة/الكلية" : (r.role === "موظف" ? "جهة العمل" : (r.role === "خريج" ? "جامعة التخرّج" : ""));
 
     el.innerHTML = filtered.map(r => `
       <div class="req">
