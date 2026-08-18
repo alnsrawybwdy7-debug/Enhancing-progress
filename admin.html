@@ -220,6 +220,7 @@
       <a class="ws-link" href="attend-in.html">🟢 بوابة الحضور</a>
       <a class="ws-link" href="attend-out.html">🔴 بوابة الانصراف</a>
       <a class="ws-link" href="squad.html">🤝 بوابة المفرزة</a>
+      <a class="ws-link" href="members.html">👥 بوابة الأعضاء</a>
       <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
     </div>
   </div>
@@ -233,6 +234,7 @@
     <button class="tab" data-tab="docsform">🪪 الاستمارة مع المستمسكات</button>
     <button class="tab" data-tab="attend">🕐 الحضور والانصراف</button>
     <button class="tab" data-tab="squad">🤝 المفرزة</button>
+    <button class="tab" data-tab="members">👥 أعضاء الفريق</button>
   </div>
 
   <!-- شاشة اختيار القسم (تظهر أولاً — لا تُحمّل أي بيانات) -->
@@ -249,6 +251,7 @@
         <button class="chooser-btn" onclick="selectSection('docsform')"><span>🪪</span> الاستمارة مع المستمسكات</button>
         <button class="chooser-btn" onclick="selectSection('attend')"><span>🕐</span> الحضور والانصراف</button>
         <button class="chooser-btn" onclick="selectSection('squad')"><span>🤝</span> المفرزة</button>
+        <button class="chooser-btn" onclick="selectSection('members')"><span>👥</span> أعضاء الفريق</button>
       </div>
     </div>
   </section>
@@ -426,6 +429,26 @@
     <div class="list" id="sqList"></div>
   </section>
 
+  <!-- قسم أعضاء الفريق -->
+  <section id="sec-members" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">أعضاء الفريق</h2>
+      <button class="export-btn" id="exportMembersBtn">📊 تصدير Excel</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat all"><div class="num" id="mmAll">0</div><div class="lbl">إجمالي الأعضاء</div></div>
+      <div class="stat acc"><div class="num" id="mmMorning">0</div><div class="lbl">دراسة صباحية</div></div>
+      <div class="stat pend"><div class="num" id="mmEvening">0</div><div class="lbl">دراسة مسائية</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="mmSearch" placeholder="🔍 بحث بالاسم، الجامعة، الكلية، القسم، الهاتف...">
+    </div>
+
+    <div class="list" id="mmList"></div>
+  </section>
+
   <footer class="app-footer">
     © فريق تعزيز التقدم التطوعي
   </footer>
@@ -491,7 +514,7 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION, ATTEND_IN_COLLECTION, ATTEND_OUT_COLLECTION, SQUAD_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION, ATTEND_IN_COLLECTION, ATTEND_OUT_COLLECTION, SQUAD_COLLECTION, MEMBERS_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
   import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc, limit, getDocs, getCountFromServer, where, getDoc }
@@ -521,6 +544,8 @@
   let attendView = "in";  // العرض الحالي: حضور أو انصراف
   let squadAll = [];      // المفرزة
   let squadUnsub = null;
+  let membersAll = [];    // أعضاء الفريق
+  let membersUnsub = null;
 
   // تكبير صورة الهوية عند الضغط عليها
   const lightbox    = document.getElementById("lightbox");
@@ -594,13 +619,14 @@
     if(attendInUnsub){ attendInUnsub(); attendInUnsub = null; }
     if(attendOutUnsub){ attendOutUnsub(); attendOutUnsub = null; }
     if(squadUnsub){ squadUnsub(); squadUnsub = null; }
+    if(membersUnsub){ membersUnsub(); membersUnsub = null; }
   }
 
   // إظهار شاشة اختيار القسم (بدون تحميل أي بيانات)
   function showChooser(){
     stopAllListeners();
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad","sec-members"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "block";
@@ -893,12 +919,12 @@
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === which));
     // أخفِ شاشة الاختيار وكل الأقسام
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "none";
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad","sec-members"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     // أوقف كل المستمعين وفرّغ الذاكرة (حتى يبقى خفيفاً)
     stopAllListeners();
-    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = []; attendInAll = []; attendOutAll = []; squadAll = [];
+    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = []; attendInAll = []; attendOutAll = []; squadAll = []; membersAll = [];
 
     // اعرض القسم المختار وحمّله وحده
     const sec = document.getElementById("sec-" + which);
@@ -910,6 +936,7 @@
     else if(which === "docsform"){ startDocsListening(); }
     else if(which === "attend"){ startAttendListening(); }
     else if(which === "squad"){ startSquadListening(); }
+    else if(which === "members"){ startMembersListening(); }
   };
 
   document.querySelectorAll(".tab").forEach(tab => {
@@ -1881,6 +1908,87 @@
     const today = new Date().toISOString().slice(0,10);
     XLSX.writeFile(wb, `squad-${today}.xlsx`);
     showToast(`تم تصدير ${sorted.length} مشارك ✓`);
+  });
+
+  // ===== 18) أعضاء الفريق =====
+  function startMembersListening(){
+    const q = query(collection(db, MEMBERS_COLLECTION), orderBy("createdAt","desc"));
+    membersUnsub = onSnapshot(q, (snap) => {
+      membersAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateMembersStats();
+      renderMembers();
+    }, (err) => { console.error(err); });
+  }
+
+  function updateMembersStats(){
+    document.getElementById("mmAll").textContent     = membersAll.length;
+    document.getElementById("mmMorning").textContent = membersAll.filter(r => r.study === "صباحي").length;
+    document.getElementById("mmEvening").textContent = membersAll.filter(r => r.study === "مسائي").length;
+  }
+
+  document.getElementById("mmSearch").addEventListener("input", renderMembers);
+
+  function renderMembers(){
+    const term = document.getElementById("mmSearch").value.trim().toLowerCase();
+    const el = document.getElementById("mmList");
+    const filtered = membersAll.filter(r =>
+      !term ||
+      (r.fullName||"").toLowerCase().includes(term) ||
+      (r.university||"").toLowerCase().includes(term) ||
+      (r.college||"").toLowerCase().includes(term) ||
+      (r.dept||"").toLowerCase().includes(term) ||
+      (r.phone||"").includes(term)
+    );
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="empty"><div class="e-ic">👥</div><h3>لا يوجد أعضاء</h3><p>${membersAll.length===0 ? "لم يُسجَّل أي عضو بعد" : "لا توجد نتائج مطابقة"}</p></div>`;
+      return;
+    }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    el.innerHTML = filtered.map(r => `
+      <div class="req">
+        <div class="r-top">
+          <div>
+            <div class="r-name">${esc(r.fullName)}</div>
+            <div class="r-gov">${esc(r.university||"")}</div>
+          </div>
+          <span class="pill ${r.study==="صباحي" ? "applied-yes":"paid-no"}">${r.study==="صباحي" ? "☀️ صباحي" : "🌙 مسائي"}</span>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">الجامعة:</span><span class="v">${esc(r.university||"—")}</span></div>
+          <div class="row"><span class="k">الكلية:</span><span class="v">${esc(r.college||"—")}</span></div>
+          <div class="row"><span class="k">القسم:</span><span class="v">${esc(r.dept||"—")}</span></div>
+          <div class="row"><span class="k">نوع الدراسة:</span><span class="v">${esc(r.study||"—")}</span></div>
+          <div class="row"><span class="k">الهاتف:</span><span class="v">${esc(r.phone||"—")}</span></div>
+          <div class="row"><span class="k">وقت التسجيل:</span><span class="v">${fmt(r.createdAt)}</span></div>
+        </div>
+        <div class="actions">
+          <button class="b-del" style="flex:1;width:auto" onclick="removeMember('${r.id}','${esc(r.fullName)}')">🗑 حذف</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  window.removeMember = async (id, name) => {
+    if(!confirm(`حذف العضو "${name}"؟`)) return;
+    try{ await deleteDoc(doc(db, MEMBERS_COLLECTION, id)); showToast("تم الحذف"); }
+    catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
+  };
+
+  document.getElementById("exportMembersBtn").addEventListener("click", () => {
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    if(membersAll.length === 0){ showToast("لا يوجد أعضاء للتصدير", true); return; }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    const sorted = [...membersAll].sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    const header = ["ت","الاسم الثلاثي","الجامعة","الكلية","القسم","نوع الدراسة","رقم الهاتف","وقت التسجيل"];
+    const rows = sorted.map((r,i) => [ i+1, r.fullName||"", r.university||"", r.college||"", r.dept||"", r.study||"", r.phone||"", fmt(r.createdAt) ]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:5},{wch:24},{wch:20},{wch:20},{wch:18},{wch:12},{wch:15},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
+    XLSX.utils.book_append_sheet(wb, ws, "أعضاء الفريق");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `members-${today}.xlsx`);
+    showToast(`تم تصدير ${sorted.length} عضو ✓`);
   });
 </script>
 </body>
