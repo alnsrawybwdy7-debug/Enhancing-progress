@@ -45,3 +45,6 @@ export const ATTEND_OUT_COLLECTION = "attend_out";
 
 // مجموعة المشاركة بالمفرزة (تسجيل عبر الرابط)
 export const SQUAD_COLLECTION = "squad";
+
+// مجموعة أعضاء الفريق (بوابة التسجيل الجديدة)
+export const MEMBERS_COLLECTION = "members";
