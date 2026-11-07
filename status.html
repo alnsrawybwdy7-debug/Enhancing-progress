@@ -91,16 +91,16 @@
   <header>
     <span class="badge"><span class="dot"></span> فريق تعزيز التقدم التطوعي</span>
     <h1>متابعة <span>طلبك</span></h1>
-    <p class="sub">اكتب رقم هاتفك لمعرفة حالة طلبك.</p>
+    <p class="sub">اكتب رقم هاتفك أو رمز طلبك لمعرفة حالة طلبك.</p>
   </header>
 
   <div class="card">
-    <label>رقم الهاتف</label>
+    <label>رقم الهاتف أو رمز الطلب</label>
     <div class="row">
-      <input type="tel" id="ticketInput" placeholder="07XXXXXXXXX" maxlength="15" inputmode="numeric" autocomplete="off">
+      <input type="text" id="ticketInput" dir="ltr" placeholder="07XXXXXXXXX  /  VLT-XXXX" maxlength="20" autocomplete="off" autocapitalize="characters">
       <button class="btn" id="checkBtn"><span class="spin"></span><span>تحقق</span></button>
     </div>
-    <div class="hint">اكتب نفس رقم الهاتف الذي قدّمت به طلبك</div>
+    <div class="hint">اكتب رقم الهاتف الذي قدّمت به، أو رمز الطلب مثل VLT-AB3K</div>
 
     <!-- بطاقة النتيجة -->
     <div class="result" id="result">
@@ -123,7 +123,7 @@
 <!-- ===== كود Firebase ===== -->
 <script type="module">
   import { db, STATUS_COLLECTION } from "./firebase-config.js";
-  import { collection, query, where, getDocs, limit }
+  import { collection, query, where, getDocs, limit, doc, getDoc }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
   const input    = document.getElementById("ticketInput");
@@ -139,7 +139,7 @@
     pending:  { cls:"r-pending",  ic:"🕐", title:"قيد المراجعة", desc:"طلبك وصل ويتم مراجعته حالياً. يرجى المتابعة لاحقاً." },
     accepted: { cls:"r-accepted", ic:"🎉", title:"تم القبول",     desc:"مبروك! تم قبول طلبك. سيتواصل معك الفريق عبر معلومة التواصل التي قدّمتها." },
     rejected: { cls:"r-rejected", ic:"✕",  title:"لم يتم القبول",  desc:"نعتذر، لم يتم قبول طلبك هذه المرة. نشكر لك اهتمامك." },
-    notfound: { cls:"r-notfound", ic:"🔎", title:"لا يوجد طلب بهذا الرقم", desc:"تأكد من رقم الهاتف وحاول مرة أخرى." }
+    notfound: { cls:"r-notfound", ic:"🔎", title:"لا يوجد طلب بهذا الرقم", desc:"تأكد من رقم الهاتف أو رمز الطلب وحاول مرة أخرى." }
   };
 
   function showResult(key){
@@ -152,27 +152,57 @@
     result.style.display = "block";
   }
 
+  // تحويل الأرقام العربية/الفارسية إلى إنكليزية
+  function latinDigits(t){
+    return t.replace(/[\u0660-\u0669]/g, d => d.charCodeAt(0) - 0x0660)
+            .replace(/[\u06F0-\u06F9]/g, d => d.charCodeAt(0) - 0x06F0);
+  }
+  function arabicDigits(t){ return t.replace(/[0-9]/g, d => String.fromCharCode(0x0660 + +d)); }
+
+  // كل الأشكال المحتملة لنفس رقم الهاتف (07… / 7… / 964… / +964… / أرقام عربية)
+  function phoneVariants(raw){
+    let d = latinDigits(raw).replace(/[^0-9]/g, "");
+    if(d.startsWith("00964")) d = d.slice(5);
+    else if(d.startsWith("964")) d = d.slice(3);
+    if(d.startsWith("0")) d = d.slice(1);
+    const forms = [ "0" + d, d, "964" + d, "+964" + d, "00964" + d ];
+    const all = [ raw.trim(), ...forms, ...forms.map(arabicDigits) ];
+    return [...new Set(all)].filter(Boolean).slice(0, 30);
+  }
+
+  // رمز الطلب: يقبل VLT-AB3K أو vlt ab3k أو AB3K
+  function asTicket(raw){
+    const t = latinDigits(raw).toUpperCase().replace(/[\s_]/g, "");
+    if(!/[A-Z]/.test(t.replace(/^VLT/, "")) && !/^VLT/.test(t)) return null;
+    const code = t.replace(/^VLT-?/, "").replace(/-/g, "");
+    return /^[A-Z0-9]{4}$/.test(code) ? "VLT-" + code : null;
+  }
+
   async function checkStatus(){
-    const phone = input.value.trim();
-    if(!phone){ input.focus(); return; }
+    const val = input.value.trim();
+    if(!val){ input.focus(); return; }
 
     btn.classList.add("loading"); btn.disabled = true;
     result.style.display = "none";
 
     try{
-      // البحث في مجموعة الحالات الآمنة (رقم الهاتف + الحالة فقط)
-      const q = query(
-        collection(db, STATUS_COLLECTION),
-        where("phone", "==", phone),
-        limit(1)
-      );
-      const snap = await getDocs(q);
-      if(snap.empty){
-        showResult("notfound");
+      let status = null;
+      const ticket = asTicket(val);
+      if(ticket){
+        // البحث برمز الطلب (اسم الورقة نفسه)
+        const snap = await getDoc(doc(db, STATUS_COLLECTION, ticket));
+        if(snap.exists()) status = snap.data().status || "pending";
       }else{
-        const status = snap.docs[0].data().status || "pending";
-        showResult(status);
+        // البحث برقم الهاتف بكل أشكاله
+        const q = query(
+          collection(db, STATUS_COLLECTION),
+          where("phone", "in", phoneVariants(val)),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if(!snap.empty) status = snap.docs[0].data().status || "pending";
       }
+      showResult(status && STATES[status] ? status : "notfound");
     }catch(err){
       console.error(err);
       showResult("notfound");
@@ -185,7 +215,7 @@
   btn.addEventListener("click", checkStatus);
   input.addEventListener("keydown", e => { if(e.key === "Enter") checkStatus(); });
 
-  // لو فتح الرابط ومعه رقم جاهز: status.html?t=07XXXXXXXXX
+  // لو فتح الرابط ومعه رقم أو رمز جاهز: status.html?t=VLT-XXXX
   const pre = new URLSearchParams(location.search).get("t");
   if(pre){ input.value = pre; checkStatus(); }
 </script>
