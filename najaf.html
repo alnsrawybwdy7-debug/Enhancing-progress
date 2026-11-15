@@ -1,1 +1,372 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>التقديم — محافظة النجف الأشرف | فريق تعزيز التقدم التطوعي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FBF6EC;--cream-2:#F3EAD8;--pine:#163F33;--pine-2:#1F5142;
+    --leaf:#3E8E6E;--clay:#D9613A;--clay-soft:#E8865F;--ink:#22322B;
+    --muted:#6E7B72;--line:#E0D5BF;--white:#fff;--green:#2E7D5B;--amber:#C98A2B;--red:#C44A36;
+    --shadow:0 18px 40px -22px rgba(22,63,51,.45);--shadow-sm:0 8px 22px -14px rgba(22,63,51,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"IBM Plex Sans Arabic",sans-serif;background:var(--cream);color:var(--ink);line-height:1.7;min-height:100vh}
+  body::before{content:"";position:fixed;inset:0;z-index:0;background:
+    radial-gradient(circle at 14% 16%, rgba(62,142,110,.10), transparent 38%),
+    radial-gradient(circle at 86% 84%, rgba(217,97,58,.10), transparent 40%);pointer-events:none}
 
+  .wrap{position:relative;z-index:1;max-width:680px;margin:0 auto;padding:26px 20px 70px}
+
+  .dedication{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--pine);color:#fff;font-size:.9rem;font-weight:600;line-height:1.7;padding:13px 18px;border-radius:14px;text-align:center;margin-bottom:22px;box-shadow:var(--shadow-sm)}
+  .dedication .spark{color:#9FE1CB;flex:none;font-size:1.05rem}
+
+  header{text-align:center;margin-bottom:26px}
+  header .badge{display:inline-flex;align-items:center;gap:8px;background:var(--cream-2);border:1px solid var(--line);color:var(--pine);font-weight:600;font-size:.85rem;padding:6px 16px;border-radius:999px;margin-bottom:16px}
+  header .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--leaf)}
+  header h1{font-family:"Reem Kufi",sans-serif;font-size:clamp(1.5rem,4vw,2rem);color:var(--pine);line-height:1.25;margin-bottom:10px}
+  header h1 span{color:var(--clay)}
+  header .sub{color:var(--muted);font-size:.95rem;max-width:460px;margin:0 auto}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:clamp(22px,4vw,36px);animation:rise .6s ease both}
+  .card-head{display:flex;align-items:center;gap:13px;margin-bottom:24px;padding-bottom:20px;border-bottom:2px dashed var(--line)}
+  .card-head .ic{width:46px;height:46px;border-radius:13px;flex:none;background:linear-gradient(135deg,var(--pine),var(--leaf));display:grid;place-items:center;color:#fff;font-size:1.3rem}
+  .card-head h2{font-family:"Reem Kufi",sans-serif;font-size:1.25rem;color:var(--pine)}
+  .card-head p{font-size:.85rem;color:var(--muted)}
+
+  .field{margin-bottom:18px}
+  .field label{display:block;font-weight:600;font-size:.95rem;margin-bottom:8px;color:var(--ink)}
+  .field label b{color:var(--clay)}
+  .field input,.field textarea,.field select{width:100%;font-family:inherit;font-size:1rem;color:var(--ink);background:var(--cream);border:1.5px solid var(--line);border-radius:13px;padding:13px 16px;transition:.2s}
+  .field textarea{resize:vertical;min-height:70px}
+  .field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--leaf);background:#fff;box-shadow:0 0 0 4px rgba(62,142,110,.14)}
+
+  /* رفع الصور */
+  .up-field{margin-bottom:18px}
+  .up-field > label{display:block;font-weight:600;font-size:.95rem;margin-bottom:8px;color:var(--ink)}
+  .up-field > label b{color:var(--clay)}
+  .up-box{position:relative;display:flex;align-items:center;gap:13px;background:var(--cream);border:1.5px dashed var(--line);border-radius:13px;padding:14px 16px;cursor:pointer;transition:.2s}
+  .up-box:hover{border-color:var(--leaf);background:#fff}
+  .up-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .up-ic{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,var(--pine),var(--leaf));display:grid;place-items:center;color:#fff;font-size:1.3rem;flex:none}
+  .up-txt{font-size:.9rem;color:var(--muted)}
+  .up-txt b{color:var(--ink);display:block;font-size:.95rem}
+  .up-preview{display:none;margin-top:10px}
+  .up-preview img{width:100%;max-width:230px;height:150px;object-fit:cover;border:1px solid var(--line);border-radius:11px}
+  .up-box.done{border-style:solid;border-color:var(--green);background:#F0F8F3}
+
+  .submit{width:100%;margin-top:8px;font-family:"Reem Kufi",sans-serif;font-weight:600;font-size:1.1rem;color:#fff;background:linear-gradient(135deg,var(--clay),var(--clay-soft));border:none;border-radius:15px;padding:16px;cursor:pointer;box-shadow:var(--shadow-sm);transition:.22s;display:flex;align-items:center;justify-content:center;gap:10px}
+  .submit:hover{transform:translateY(-2px)}
+  .submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+  .spin{width:18px;height:18px;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:rot .7s linear infinite;display:none}
+  .submit.loading .spin{display:inline-block}
+
+  /* شاشة الشكر */
+  .done-screen{text-align:center;padding:20px 6px}
+  .done-screen .big{width:76px;height:76px;border-radius:50%;background:#DEF1E7;display:grid;place-items:center;margin:0 auto 18px;font-size:2.2rem;animation:pop .5s ease both}
+  .done-screen h2{font-family:"Reem Kufi",sans-serif;font-size:1.5rem;color:var(--green);margin-bottom:10px}
+  .done-screen p{color:var(--muted);margin-bottom:24px}
+  .done-screen .again{font-family:inherit;font-weight:600;color:var(--pine);background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px 26px;cursor:pointer}
+
+  footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.85rem}
+
+  .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--pine);color:#fff;padding:14px 24px;border-radius:13px;font-weight:500;box-shadow:0 20px 40px -18px rgba(0,0,0,.5);z-index:60;transition:.4s cubic-bezier(.2,.8,.2,1)}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.err{background:var(--clay)}
+
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .roles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+  .roles label{margin:0;position:relative}
+  .roles input{position:absolute;opacity:0;pointer-events:none}
+  .roles span{display:flex;align-items:center;justify-content:center;gap:6px;height:50px;border:1.5px solid var(--line);border-radius:13px;background:var(--cream);font-weight:600;cursor:pointer;transition:.2s}
+  .roles input:checked + span{background:var(--pine);border-color:var(--pine);color:#fff}
+  .roles input:focus-visible + span{box-shadow:0 0 0 4px rgba(62,142,110,.25)}
+  .gov-chip{display:inline-flex;align-items:center;gap:6px;background:#FDF0DC;border:1px solid #F0D3A6;color:#6B3F08;font-weight:600;font-size:.88rem;padding:6px 14px;border-radius:999px;margin-top:12px}
+  .privacy{font-size:.8rem;color:var(--muted);background:var(--cream);border-radius:11px;padding:10px 13px;margin:-4px 0 16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="dedication">
+    <span class="spark">✦</span>
+    <span>تم تصميم النظام صدقة جارية على روح والدي <b style="font-weight:700;">عبدالسلام عبدالرضا النصراوي</b></span>
+  </div>
+
+  <header>
+    <span class="badge"><span class="dot"></span> فريق تعزيز التقدم التطوعي</span>
+    <h1>استمارة التقديم <span>للفريق</span></h1>
+    <p class="sub">عبّئ بياناتك وارفع صورة البطاقة الوطنية (الوجه والخلف).</p>
+    <span class="gov-chip">📍 محافظة النجف الأشرف</span>
+  </header>
+
+  <div class="card" id="card">
+    <div class="card-head">
+      <div class="ic">📝</div>
+      <div>
+        <h2>بيانات المتقدّم</h2>
+        <p>الحقول المؤشرة بـ <b>*</b> إلزامية</p>
+      </div>
+    </div>
+
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="fullName">الاسم الرباعي واللقب <b>*</b></label>
+        <input type="text" id="fullName" placeholder="مثال: علي حسين كاظم جواد الموسوي" required>
+      </div>
+
+      <div class="field">
+        <label>الصفة <b>*</b></label>
+        <div class="roles">
+          <label><input type="radio" name="role" value="طالب" required><span>🎓 طالب</span></label>
+          <label><input type="radio" name="role" value="خريج"><span>📜 خريج</span></label>
+          <label><input type="radio" name="role" value="موظف"><span>💼 موظف</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="education">التحصيل الدراسي <b>*</b></label>
+        <input type="text" id="education" placeholder="مثال: بكالوريوس هندسة / المرحلة الثانية" required>
+      </div>
+
+      <div class="field">
+        <label for="address">عنوان السكن <b>*</b></label>
+        <input type="text" id="address" placeholder="القضاء / الناحية، الحي، المحلة" required>
+      </div>
+
+      <div class="field">
+        <label for="landmark">أقرب نقطة دالة <b>*</b></label>
+        <input type="text" id="landmark" placeholder="مثال: قرب جامع ... / مقابل مدرسة ..." required>
+      </div>
+
+      <div class="up-field">
+        <label>البطاقة الوطنية — الوجه <b>*</b></label>
+        <div class="up-box" id="natFrontBox">
+          <div class="up-ic">🪪</div>
+          <div class="up-txt"><b id="natFrontName">اضغط لرفع وجه البطاقة الوطنية</b>صورة واضحة JPG أو PNG</div>
+          <input type="file" id="natFrontFile" accept="image/*">
+        </div>
+        <div class="up-preview" id="natFrontPreview"><img id="natFrontImg" alt="وجه البطاقة الوطنية"></div>
+      </div>
+
+      <div class="up-field">
+        <label>البطاقة الوطنية — الخلف <b>*</b></label>
+        <div class="up-box" id="natBackBox">
+          <div class="up-ic">🪪</div>
+          <div class="up-txt"><b id="natBackName">اضغط لرفع ظهر البطاقة الوطنية</b>صورة واضحة JPG أو PNG</div>
+          <input type="file" id="natBackFile" accept="image/*">
+        </div>
+        <div class="up-preview" id="natBackPreview"><img id="natBackImg" alt="ظهر البطاقة الوطنية"></div>
+      </div>
+
+      <p class="privacy">🔒 صور البطاقة تُحفظ بشكل منفصل ولا يطّلع عليها غير إدارة الفريق.</p>
+
+      <button type="submit" class="submit" id="btn">
+        <span class="spin"></span><span class="btn-txt">إرسال الطلب</span>
+      </button>
+    </form>
+  </div>
+
+  <div class="card" id="doneCard" style="display:none">
+    <div class="done-screen">
+      <div class="big">✓</div>
+      <h2>تم استلام طلبك</h2>
+      <p>شكراً لك، وصل طلبك لإدارة الفريق وراح نتواصل وياك قريباً.</p>
+      <button class="again" id="again">تقديم طلب آخر</button>
+    </div>
+  </div>
+
+  <footer>© فريق تعزيز التقدم التطوعي — جميع الحقوق محفوظة</footer>
+</div>
+
+<div class="toast" id="toast"><span id="toast-txt"></span></div>
+
+<script type="module">
+  import { db, NAJAF_COLLECTION, NAJAF_IDS_COLLECTION } from "./firebase-config.js";
+  import { collection, doc, writeBatch, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+  const form = document.getElementById("form");
+  const btn  = document.getElementById("btn");
+  const card = document.getElementById("card");
+  const doneCard = document.getElementById("doneCard");
+  const toast = document.getElementById("toast");
+
+  function showToast(msg, isErr=false){
+    document.getElementById("toast-txt").textContent = msg;
+    toast.className = "toast show" + (isErr ? " err" : "");
+    setTimeout(() => toast.className = "toast", 3200);
+  }
+
+  const uploads = { natFront:null, natBack:null };
+  // قراءة اتجاه الصورة من بيانات EXIF (لتصحيح الصور المقلوبة من الموبايل)
+  function getOrientation(file){
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try{
+          const view = new DataView(e.target.result);
+          if(view.getUint16(0, false) !== 0xFFD8){ resolve(1); return; } // ليست JPEG
+          const length = view.byteLength; let offset = 2;
+          while(offset < length){
+            if(view.getUint16(offset+2, false) <= 8){ resolve(1); return; }
+            const marker = view.getUint16(offset, false); offset += 2;
+            if(marker === 0xFFE1){
+              if(view.getUint32(offset += 2, false) !== 0x45786966){ resolve(1); return; }
+              const little = view.getUint16(offset += 6, false) === 0x4949;
+              offset += view.getUint32(offset + 4, little);
+              const tags = view.getUint16(offset, little); offset += 2;
+              for(let i=0; i<tags; i++){
+                if(view.getUint16(offset + (i*12), little) === 0x0112){
+                  resolve(view.getUint16(offset + (i*12) + 8, little)); return;
+                }
+              }
+            } else if((marker & 0xFF00) !== 0xFF00){ break; }
+            else { offset += view.getUint16(offset, false); }
+          }
+          resolve(1);
+        }catch(err){ resolve(1); }
+      };
+      reader.onerror = () => resolve(1);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function compressImage(file, maxDim, quality){
+    return new Promise((resolve, reject) => {
+      getOrientation(file).then((orientation) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width, h = img.height, scale = 1;
+            if(w > h && w > maxDim) scale = maxDim / w;
+            else if(h >= w && h > maxDim) scale = maxDim / h;
+            const dw = Math.round(w * scale), dh = Math.round(h * scale);
+            const cv = document.createElement("canvas");
+            const swap = orientation >= 5 && orientation <= 8; // اتجاهات 90/270 تبدّل الأبعاد
+            cv.width  = swap ? dh : dw;
+            cv.height = swap ? dw : dh;
+            const c = cv.getContext("2d");
+            // تصحيح الاتجاه حسب EXIF
+            switch(orientation){
+              case 2: c.transform(-1, 0, 0, 1, cv.width, 0); break;
+              case 3: c.transform(-1, 0, 0, -1, cv.width, cv.height); break;
+              case 4: c.transform(1, 0, 0, -1, 0, cv.height); break;
+              case 5: c.transform(0, 1, 1, 0, 0, 0); break;
+              case 6: c.transform(0, 1, -1, 0, cv.width, 0); break;
+              case 7: c.transform(0, -1, -1, 0, cv.width, cv.height); break;
+              case 8: c.transform(0, -1, 1, 0, 0, cv.height); break;
+              default: break;
+            }
+            c.drawImage(img, 0, 0, dw, dh);
+            resolve(cv.toDataURL("image/jpeg", quality));
+          };
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+  }
+
+  // ضغط الصورة حتى تصل لحجم أقل من الميزانية المحددة — صورتين بمستند منفصل
+  async function compressToBudget(file, maxBytes){
+    const attempts = [[1500,0.72],[1300,0.65],[1100,0.58],[950,0.5],[800,0.45],[680,0.4]];
+    let last = null;
+    for(const [dim,q] of attempts){
+      const d = await compressImage(file, dim, q);
+      last = d;
+      if(d.length <= maxBytes) return d;
+    }
+    return last; // أصغر ما نقدر نوصله
+  }
+
+  async function handleUpload(file, key, label){
+    if(!file) return;
+    if(!file.type.startsWith("image/")){ showToast("الرجاء رفع صورة صحيحة", true); return; }
+    try{
+      // ميزانية ~420 ألف حرف لكل صورة → صورتين ≈ 840 ألف تحت حد 1 ميغا
+      const data = await compressToBudget(file, 420000);
+      uploads[key] = data;
+      document.getElementById(key + "Img").src = data;
+      document.getElementById(key + "Preview").style.display = "block";
+      document.getElementById(key + "Name").textContent = "✓ تم رفع " + label + " (اضغط للتغيير)";
+      document.getElementById(key + "Box").classList.add("done");
+    }catch(e){ console.error(e); showToast("تعذّرت معالجة الصورة، جرّب صورة ثانية", true); }
+  }
+
+  const UP_FIELDS = [
+    { key:"natFront", label:"وجه البطاقة الوطنية", reset:"اضغط لرفع وجه البطاقة الوطنية" },
+    { key:"natBack",  label:"ظهر البطاقة الوطنية", reset:"اضغط لرفع ظهر البطاقة الوطنية" },
+  ];
+  UP_FIELDS.forEach(f => {
+    document.getElementById(f.key + "File").addEventListener("change", (e) => handleUpload(e.target.files[0], f.key, f.label));
+  });
+
+  // ===== الإرسال =====
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const role = (form.querySelector('input[name="role"]:checked') || {}).value || "";
+    const val = id => document.getElementById(id).value.trim();
+    const need = [["fullName","الاسم الرباعي واللقب"],["education","التحصيل الدراسي"],["address","عنوان السكن"],["landmark","أقرب نقطة دالة"]];
+    const emptyF = need.find(([id]) => !val(id));
+    if(emptyF){ showToast("مطلوب: " + emptyF[1], true); document.getElementById(emptyF[0]).focus(); return; }
+    if(val("fullName").split(/\s+/).length < 4){ showToast("اكتب الاسم الرباعي مع اللقب", true); document.getElementById("fullName").focus(); return; }
+    if(!role){ showToast("اختر الصفة: طالب أو خريج أو موظف", true); return; }
+    const missing = UP_FIELDS.find(f => !uploads[f.key]);
+    if(missing){ showToast("مطلوب رفع: " + missing.label, true); document.getElementById(missing.key + "Box").scrollIntoView({behavior:"smooth", block:"center"}); return; }
+    if(uploads.natFront.length + uploads.natBack.length > 950000){ showToast("الصور كبيرة، ارفع صور أوضح وأصغر", true); return; }
+
+    btn.classList.add("loading"); btn.disabled = true;
+    try{
+      // البيانات بمستند، والصور بمستند منفصل بنفس المعرّف (حتى تبقى لوحة التحكم سريعة)
+      const ref = doc(collection(db, NAJAF_COLLECTION));
+      const batch = writeBatch(db);
+      batch.set(ref, {
+        fullName:  val("fullName"),
+        role,
+        education: val("education"),
+        address:   val("address"),
+        landmark:  val("landmark"),
+        governorate: "النجف الأشرف",
+        createdAt: serverTimestamp()
+      });
+      batch.set(doc(db, NAJAF_IDS_COLLECTION, ref.id), {
+        natFront: uploads.natFront,
+        natBack:  uploads.natBack,
+        createdAt: serverTimestamp()
+      });
+      await batch.commit();
+      card.style.display = "none";
+      doneCard.style.display = "block";
+      window.scrollTo({top:0, behavior:"smooth"});
+    }catch(err){
+      console.error(err);
+      showToast("صار خطأ أثناء الإرسال، حاول مرة ثانية", true);
+      btn.classList.remove("loading"); btn.disabled = false;
+    }
+  });
+
+  document.getElementById("again").addEventListener("click", () => {
+    form.reset();
+    UP_FIELDS.forEach(f => {
+      uploads[f.key] = null;
+      document.getElementById(f.key + "Preview").style.display = "none";
+      document.getElementById(f.key + "Box").classList.remove("done");
+      document.getElementById(f.key + "Name").textContent = f.reset;
+    });
+    doneCard.style.display = "none";
+    card.style.display = "block";
+    btn.classList.remove("loading"); btn.disabled = false;
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
+</script>
+</body>
+</html>
