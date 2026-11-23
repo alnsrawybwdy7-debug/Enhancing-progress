@@ -221,6 +221,7 @@
       <a class="ws-link" href="attend-out.html">🔴 بوابة الانصراف</a>
       <a class="ws-link" href="squad.html">🤝 بوابة المفرزة</a>
       <a class="ws-link" href="members.html">👥 بوابة الأعضاء</a>
+      <a class="ws-link" href="najaf.html">📍 بوابة النجف</a>
       <button class="logout" id="logoutBtn">↩ تسجيل الخروج</button>
     </div>
   </div>
@@ -235,6 +236,7 @@
     <button class="tab" data-tab="attend">🕐 الحضور والانصراف</button>
     <button class="tab" data-tab="squad">🤝 المفرزة</button>
     <button class="tab" data-tab="members">👥 أعضاء الفريق</button>
+    <button class="tab" data-tab="najaf">📍 تقديم النجف</button>
   </div>
 
   <!-- شاشة اختيار القسم (تظهر أولاً — لا تُحمّل أي بيانات) -->
@@ -252,6 +254,7 @@
         <button class="chooser-btn" onclick="selectSection('attend')"><span>🕐</span> الحضور والانصراف</button>
         <button class="chooser-btn" onclick="selectSection('squad')"><span>🤝</span> المفرزة</button>
         <button class="chooser-btn" onclick="selectSection('members')"><span>👥</span> أعضاء الفريق</button>
+        <button class="chooser-btn" onclick="selectSection('najaf')"><span>📍</span> تقديم النجف</button>
       </div>
     </div>
   </section>
@@ -449,6 +452,27 @@
     <div class="list" id="mmList"></div>
   </section>
 
+  <!-- قسم تقديم محافظة النجف -->
+  <section id="sec-najaf" style="display:none">
+    <div class="sec-head">
+      <h2 class="sec-title">تقديم محافظة النجف الأشرف</h2>
+      <button class="export-btn" id="exportNajafBtn">📊 تصدير Excel</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat all"><div class="num" id="njAll">0</div><div class="lbl">إجمالي المتقدّمين</div></div>
+      <div class="stat acc"><div class="num" id="njStudents">0</div><div class="lbl">طلاب</div></div>
+      <div class="stat rej"><div class="num" id="njGrads">0</div><div class="lbl">خريجون</div></div>
+      <div class="stat pend"><div class="num" id="njEmployees">0</div><div class="lbl">موظفون</div></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" id="njSearch" placeholder="🔍 بحث بالاسم، التحصيل، العنوان، النقطة الدالة...">
+    </div>
+
+    <div class="list" id="njList"></div>
+  </section>
+
   <footer class="app-footer">
     © فريق تعزيز التقدم التطوعي
   </footer>
@@ -514,7 +538,7 @@
 
 <!-- ===== كود Firebase ===== -->
 <script type="module">
-  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION, ATTEND_IN_COLLECTION, ATTEND_OUT_COLLECTION, SQUAD_COLLECTION, MEMBERS_COLLECTION } from "./firebase-config.js";
+  import { db, auth, VOLUNTEERS_COLLECTION, STATUS_COLLECTION, WORKSHOP_COLLECTION, WORKSHOP2_COLLECTION, TEAM_FORM_COLLECTION, DOCS_FORM_COLLECTION, ATTEND_IN_COLLECTION, ATTEND_OUT_COLLECTION, SQUAD_COLLECTION, MEMBERS_COLLECTION, NAJAF_COLLECTION, NAJAF_IDS_COLLECTION } from "./firebase-config.js";
   import { signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
   import { collection, query, orderBy, onSnapshot, doc, updateDoc, setDoc, deleteDoc, limit, getDocs, getCountFromServer, where, getDoc }
@@ -546,6 +570,8 @@
   let squadUnsub = null;
   let membersAll = [];    // أعضاء الفريق
   let membersUnsub = null;
+  let najafAll = [];      // تقديم النجف
+  let najafUnsub = null;
 
   // تكبير صورة الهوية عند الضغط عليها
   const lightbox    = document.getElementById("lightbox");
@@ -620,13 +646,14 @@
     if(attendOutUnsub){ attendOutUnsub(); attendOutUnsub = null; }
     if(squadUnsub){ squadUnsub(); squadUnsub = null; }
     if(membersUnsub){ membersUnsub(); membersUnsub = null; }
+    if(najafUnsub){ najafUnsub(); najafUnsub = null; }
   }
 
   // إظهار شاشة اختيار القسم (بدون تحميل أي بيانات)
   function showChooser(){
     stopAllListeners();
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad","sec-members"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad","sec-members","sec-najaf"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "block";
@@ -919,12 +946,12 @@
     document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === which));
     // أخفِ شاشة الاختيار وكل الأقسام
     const ch = document.getElementById("sec-chooser"); if(ch) ch.style.display = "none";
-    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad","sec-members"].forEach(id => {
+    ["sec-applicants","sec-workshop","sec-workshop2","sec-teamform","sec-docsform","sec-attend","sec-squad","sec-members","sec-najaf"].forEach(id => {
       const el = document.getElementById(id); if(el) el.style.display = "none";
     });
     // أوقف كل المستمعين وفرّغ الذاكرة (حتى يبقى خفيفاً)
     stopAllListeners();
-    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = []; attendInAll = []; attendOutAll = []; squadAll = []; membersAll = [];
+    allRequests = []; wsAll = []; ws2All = []; teamAll = []; docsAll = []; attendInAll = []; attendOutAll = []; squadAll = []; membersAll = []; najafAll = [];
 
     // اعرض القسم المختار وحمّله وحده
     const sec = document.getElementById("sec-" + which);
@@ -937,6 +964,7 @@
     else if(which === "attend"){ startAttendListening(); }
     else if(which === "squad"){ startSquadListening(); }
     else if(which === "members"){ startMembersListening(); }
+    else if(which === "najaf"){ startNajafListening(); }
   };
 
   document.querySelectorAll(".tab").forEach(tab => {
@@ -1989,6 +2017,124 @@
     const today = new Date().toISOString().slice(0,10);
     XLSX.writeFile(wb, `members-${today}.xlsx`);
     showToast(`تم تصدير ${sorted.length} عضو ✓`);
+  });
+
+  // ===== 19) تقديم محافظة النجف =====
+  // البيانات تنحمّل وحدها (خفيفة)، وصور البطاقة تنجلب فقط عند الضغط على "عرض البطاقة"
+  const najafImgCache = {};
+
+  function startNajafListening(){
+    const q = query(collection(db, NAJAF_COLLECTION), orderBy("createdAt","desc"));
+    najafUnsub = onSnapshot(q, (snap) => {
+      najafAll = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      updateNajafStats();
+      renderNajaf();
+    }, (err) => { console.error(err); showToast("تعذّر تحميل تقديم النجف — تأكد من نشر القواعد", true); });
+  }
+
+  function updateNajafStats(){
+    document.getElementById("njAll").textContent       = najafAll.length;
+    document.getElementById("njStudents").textContent  = najafAll.filter(r => r.role === "طالب").length;
+    document.getElementById("njGrads").textContent     = najafAll.filter(r => r.role === "خريج").length;
+    document.getElementById("njEmployees").textContent = najafAll.filter(r => r.role === "موظف").length;
+  }
+
+  document.getElementById("njSearch").addEventListener("input", renderNajaf);
+
+  function renderNajaf(){
+    const term = document.getElementById("njSearch").value.trim().toLowerCase();
+    const el = document.getElementById("njList");
+    const filtered = najafAll.filter(r =>
+      !term ||
+      (r.fullName||"").toLowerCase().includes(term) ||
+      (r.education||"").toLowerCase().includes(term) ||
+      (r.address||"").toLowerCase().includes(term) ||
+      (r.landmark||"").toLowerCase().includes(term) ||
+      (r.role||"").includes(term)
+    );
+    if(filtered.length === 0){
+      el.innerHTML = `<div class="empty"><div class="e-ic">📍</div><h3>لا يوجد متقدّمون</h3><p>${najafAll.length===0 ? "لم يُقدَّم أي طلب بعد" : "لا توجد نتائج مطابقة"}</p></div>`;
+      return;
+    }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    const pillCls = { "طالب":"applied-yes", "خريج":"paid-no", "موظف":"applied-no" };
+    el.innerHTML = filtered.map(r => `
+      <div class="req">
+        <div class="r-top">
+          <div>
+            <div class="r-name">${esc(r.fullName)}</div>
+            <div class="r-gov">📍 النجف الأشرف</div>
+          </div>
+          <span class="pill ${pillCls[r.role]||"pending"}">${esc(r.role||"—")}</span>
+        </div>
+        <div class="rows">
+          <div class="row"><span class="k">التحصيل الدراسي:</span><span class="v">${esc(r.education||"—")}</span></div>
+          <div class="row"><span class="k">عنوان السكن:</span><span class="v">${esc(r.address||"—")}</span></div>
+          <div class="row"><span class="k">أقرب نقطة دالة:</span><span class="v">${esc(r.landmark||"—")}</span></div>
+          <div class="row"><span class="k">وقت التقديم:</span><span class="v">${fmt(r.createdAt)}</span></div>
+        </div>
+        <div id="njImgs-${r.id}" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0"></div>
+        <div class="actions">
+          <button class="b-acc" style="flex:1" onclick="showNajafId('${r.id}')">🪪 عرض البطاقة الوطنية</button>
+          <button class="b-del" onclick="removeNajaf('${r.id}','${esc(r.fullName)}')">🗑</button>
+        </div>
+      </div>
+    `).join("");
+    // أعد إظهار الصور اللي انفتحت قبل
+    filtered.forEach(r => { if(najafImgCache[r.id]) paintNajafImgs(r.id); });
+  }
+
+  function paintNajafImgs(id){
+    const box = document.getElementById("njImgs-" + id); if(!box) return;
+    const d = najafImgCache[id];
+    box.innerHTML = `
+      <div><div class="id-label">🆔 الوجه</div>${d.natFront ? `<img class="id-thumb" src="${d.natFront}" alt="وجه البطاقة" onclick="zoomImg(this.src)">` : "—"}</div>
+      <div><div class="id-label">🔄 الخلف</div>${d.natBack ? `<img class="id-thumb" src="${d.natBack}" alt="ظهر البطاقة" onclick="zoomImg(this.src)">` : "—"}</div>`;
+    box.style.display = "grid";
+  }
+
+  window.showNajafId = async (id) => {
+    const box = document.getElementById("njImgs-" + id);
+    if(najafImgCache[id]){
+      if(box.style.display === "grid"){ box.style.display = "none"; delete najafImgCache[id]; }
+      else paintNajafImgs(id);
+      return;
+    }
+    box.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted)">جاري تحميل الصور...</div>`;
+    box.style.display = "grid";
+    try{
+      const snap = await getDoc(doc(db, NAJAF_IDS_COLLECTION, id));
+      if(!snap.exists()){ box.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--muted)">لا توجد صور لهذا الطلب</div>`; return; }
+      najafImgCache[id] = snap.data();
+      paintNajafImgs(id);
+    }catch(err){ console.error(err); box.style.display = "none"; showToast("تعذّر تحميل الصور", true); }
+  };
+
+  window.removeNajaf = async (id, name) => {
+    if(!confirm(`حذف طلب "${name}" مع صور البطاقة؟`)) return;
+    try{
+      await deleteDoc(doc(db, NAJAF_IDS_COLLECTION, id));
+      await deleteDoc(doc(db, NAJAF_COLLECTION, id));
+      delete najafImgCache[id];
+      showToast("تم الحذف");
+    }catch(err){ console.error(err); showToast("تعذّر الحذف", true); }
+  };
+
+  document.getElementById("exportNajafBtn").addEventListener("click", () => {
+    if(typeof XLSX === "undefined"){ showToast("لم تُحمّل أداة التصدير، حدّث الصفحة", true); return; }
+    if(najafAll.length === 0){ showToast("لا يوجد متقدّمون للتصدير", true); return; }
+    const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
+    const sorted = [...najafAll].sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
+    const header = ["ت","الاسم الرباعي واللقب","الصفة","التحصيل الدراسي","عنوان السكن","أقرب نقطة دالة","وقت التقديم"];
+    const rows = sorted.map((r,i) => [ i+1, r.fullName||"", r.role||"", r.education||"", r.address||"", r.landmark||"", fmt(r.createdAt) ]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = [{wch:5},{wch:30},{wch:10},{wch:26},{wch:30},{wch:28},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    wb.Workbook = { Views: [{ RTL: true }] };
+    XLSX.utils.book_append_sheet(wb, ws, "تقديم النجف");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `najaf-${today}.xlsx`);
+    showToast(`تم تصدير ${sorted.length} متقدّم ✓`);
   });
 </script>
 </body>
