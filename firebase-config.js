@@ -48,3 +48,7 @@ export const SQUAD_COLLECTION = "squad";
 
 // مجموعة أعضاء الفريق (بوابة التسجيل الجديدة)
 export const MEMBERS_COLLECTION = "members";
+
+// تقديم محافظة النجف: البيانات بمجموعة، وصور البطاقة الوطنية بمجموعة منفصلة (نفس المعرّف)
+export const NAJAF_COLLECTION = "najaf";
+export const NAJAF_IDS_COLLECTION = "najaf_ids";
