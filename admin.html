@@ -467,7 +467,7 @@
     </div>
 
     <div class="controls">
-      <input type="text" id="njSearch" placeholder="🔍 بحث بالاسم، التحصيل، العنوان، النقطة الدالة...">
+      <input type="text" id="njSearch" placeholder="🔍 بحث بالاسم، الهاتف، التحصيل، العنوان، النقطة الدالة...">
     </div>
 
     <div class="list" id="njList"></div>
@@ -2050,6 +2050,7 @@
       (r.education||"").toLowerCase().includes(term) ||
       (r.address||"").toLowerCase().includes(term) ||
       (r.landmark||"").toLowerCase().includes(term) ||
+      (r.phone||"").includes(term) ||
       (r.role||"").includes(term)
     );
     if(filtered.length === 0){
@@ -2071,6 +2072,7 @@
           <div class="row"><span class="k">التحصيل الدراسي:</span><span class="v">${esc(r.education||"—")}</span></div>
           <div class="row"><span class="k">عنوان السكن:</span><span class="v">${esc(r.address||"—")}</span></div>
           <div class="row"><span class="k">أقرب نقطة دالة:</span><span class="v">${esc(r.landmark||"—")}</span></div>
+          <div class="row"><span class="k">واتساب:</span><span class="v" dir="ltr">${r.phone ? `<a href="https://wa.me/964${esc(String(r.phone).replace(/^0/,""))}" target="_blank" rel="noopener" style="color:#1E6B4A;font-weight:600">${esc(r.phone)} 💬</a>` : "—"}</span></div>
           <div class="row"><span class="k">وقت التقديم:</span><span class="v">${fmt(r.createdAt)}</span></div>
         </div>
         <div id="njImgs-${r.id}" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0"></div>
@@ -2125,10 +2127,10 @@
     if(najafAll.length === 0){ showToast("لا يوجد متقدّمون للتصدير", true); return; }
     const fmt = (ts) => { try{ return ts && ts.toDate ? ts.toDate().toLocaleString("ar-IQ") : ""; }catch(e){ return ""; } };
     const sorted = [...najafAll].sort((a,b) => (a.fullName||"").localeCompare((b.fullName||""), "ar"));
-    const header = ["ت","الاسم الرباعي واللقب","الصفة","التحصيل الدراسي","عنوان السكن","أقرب نقطة دالة","وقت التقديم"];
-    const rows = sorted.map((r,i) => [ i+1, r.fullName||"", r.role||"", r.education||"", r.address||"", r.landmark||"", fmt(r.createdAt) ]);
+    const header = ["ت","الاسم الرباعي واللقب","رقم الهاتف (واتساب)","الصفة","التحصيل الدراسي","عنوان السكن","أقرب نقطة دالة","وقت التقديم"];
+    const rows = sorted.map((r,i) => [ i+1, r.fullName||"", r.phone||"", r.role||"", r.education||"", r.address||"", r.landmark||"", fmt(r.createdAt) ]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-    ws["!cols"] = [{wch:5},{wch:30},{wch:10},{wch:26},{wch:30},{wch:28},{wch:20}];
+    ws["!cols"] = [{wch:5},{wch:30},{wch:16},{wch:10},{wch:26},{wch:30},{wch:28},{wch:20}];
     const wb = XLSX.utils.book_new();
     wb.Workbook = { Views: [{ RTL: true }] };
     XLSX.utils.book_append_sheet(wb, ws, "تقديم النجف");
